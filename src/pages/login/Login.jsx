@@ -136,6 +136,9 @@ const LoginForm = () => {
           {loading ? "Logging in..." : "Login"}
         </button>
 
+        <p className="text-center text-white mt-6 italic text-sm drop-shadow-sm">
+          🏖️ Enjoy your beach holiday!
+        </p>
         <div className="text-center text-white/90 text-sm mb-4">
           You don`t have a account?{" "}
           <a
