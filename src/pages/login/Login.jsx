@@ -7,7 +7,7 @@ import { login, resetAuthError } from "../../redux/reducers/userSlice.js";
 const LoginForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error, isAuthenticated, user } = useSelector((state) => state.userSlice);
+  const { loading, error } = useSelector((state) => state.userSlice);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -17,33 +17,13 @@ const LoginForm = () => {
   const [formErrors, setFormErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
-  // Clear Redux error when component mounts
+  // Clear Redux error when component mounts or on unmount
   useEffect(() => {
     dispatch(resetAuthError());
+    return () => {
+      dispatch(resetAuthError());
+    };
   }, [dispatch]);
-
-  // Enhanced navigation logic based on user role
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      console.log("User authenticated:", user);
-
-      // Navigate based on user role
-      switch (user.role) {
-        case "Admin":
-          console.log("Admin user detected, navigating to /admin");
-          navigate("/admin", { replace: true });
-          break;
-        case "User":
-          console.log("Regular user detected, navigating to /user");
-          navigate("/user", { replace: true });
-          break;
-        default:
-          console.log("Unknown role:", user.role, "redirecting to home");
-          navigate("/", { replace: true });
-          break;
-      }
-    }
-  }, [isAuthenticated, user, navigate]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -91,15 +71,25 @@ const LoginForm = () => {
     }
 
     try {
-      // Dispatch the login async thunk
-      const result = await dispatch(login(formData)).unwrap();
-      console.log("Login successful:", result);
+      // Dispatch the login async thunk and wait for the result
+      const resultAction = await dispatch(login(formData)).unwrap();
 
-      // Navigation will be handled by the useEffect above
-      // when isAuthenticated and user state are updated
-    } catch (error) {
-      console.error("Login failed:", error);
-      // Error will be handled by Redux state
+      if (resultAction) {
+        switch (resultAction.role) {
+          case "Admin":
+            navigate("/admin", { replace: true });
+            break;
+          case "User":
+            navigate("/user", { replace: true });
+            break;
+          default:
+            navigate("/", { replace: true });
+            break;
+        }
+      }
+    } catch (err) {
+      console.error("Login failed:", err);
+      // The error is already handled by the Redux state, so no further action is needed here.
     }
   };
 
