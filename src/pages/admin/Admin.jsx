@@ -6,7 +6,7 @@ import { useSelector, useDispatch } from 'react-redux';
 // Import Redux Thunks and actions from your slices
 import { fetchRooms, addRoom, updateRoom, deleteRoom, fetchRoomById, clearCurrentRoom, clearRoomError } from '../../redux/reducers/roomSlice'; // Adjust path if necessary
 import { getReservationTable, createReservation, updateReservation, deleteReservation, getReservationById, clearCurrentReservation, resetReservationError } from '../../redux/reducers/reservationSlice'; // Adjust path if necessary
-import { getAllTeachers, resetAuthError } from '../../redux/reducers/userSlice'; // Adjust path if necessary
+// REMOVED: import { getAllTeachers, resetAuthError } from '../../redux/reducers/userSlice'; // Adjust path if necessary
 
 // --- Context for Theme ---
 const AdminContext = createContext();
@@ -416,15 +416,14 @@ const AdminDashboard = () => {
     const { isDarkMode, toggleDarkMode } = useContext(AdminContext);
     const dispatch = useDispatch();
 
-    // Selectors for Room Management - CORRECTED
+    // Selectors for Room Management
     const { rooms, loading: roomsLoading, error: roomsError, currentRoom } = useSelector((state) => state.roomSlice);
 
-    // Selectors for Reservation Management - CORRECTED
+    // Selectors for Reservation Management
     const { tableData: reservationTableData, loading: reservationLoading, error: reservationError, currentReservation } = useSelector((state) => state.reservationSlice);
 
-    // Selectors for User/Auth (teachers) - CORRECTED
-    // Assuming 'userSlice' is for auth and contains 'teachers' in its state
-    const { teachers, loading: authLoading, error: authError } = useSelector((state) => state.userSlice);
+    // REMOVED: Selectors for User/Auth (teachers)
+    // REMOVED: const { teachers, loading: authLoading, error: authError } = useSelector((state) => state.userSlice);
 
     // Local state for UI
     const [activeTab, setActiveTab] = useState('rooms');
@@ -439,9 +438,10 @@ const AdminDashboard = () => {
             dispatch(fetchRooms());
         } else if (activeTab === 'reservations') {
             dispatch(getReservationTable());
-        } else if (activeTab === 'teachers') {
-            dispatch(getAllTeachers());
         }
+        // REMOVED: else if (activeTab === 'teachers') {
+        // REMOVED:    dispatch(getAllTeachers());
+        // REMOVED: }
     }, [activeTab, dispatch]);
 
     const openModal = (type, item = null) => {
@@ -465,7 +465,7 @@ const AdminDashboard = () => {
         dispatch(clearRoomError());
         dispatch(clearCurrentReservation());
         dispatch(resetReservationError());
-        dispatch(resetAuthError());
+        // REMOVED: dispatch(resetAuthError());
     };
 
     const handleSubmit = async (data, type) => {
@@ -532,7 +532,7 @@ const AdminDashboard = () => {
 
     const filteredRooms = getFilteredData(rooms, ['number', 'type', 'status']);
     const filteredReservations = getFilteredData(reservationTableData, ['customerName', 'roomNumber', 'status']);
-    const filteredTeachers = getFilteredData(teachers, ['name', 'email']);
+    // REMOVED: const filteredTeachers = getFilteredData(teachers, ['name', 'email']);
 
     // Placeholders for Customers and Services as no Redux slices were provided for them
     const mockCustomers = [];
@@ -550,7 +550,7 @@ const AdminDashboard = () => {
         services: ['Service Name', 'Category', 'Price', 'Actions'], // Placeholder
         customerServices: ['Customer', 'Service', 'Quantity', 'Actions'], // Placeholder
         reservations: ['Reservation ID', 'Room Number', 'Customer', 'Check-in', 'Check-out', 'Status', 'Actions'],
-        teachers: ['Teacher Name', 'Email', 'Role', 'Actions'],
+        // REMOVED: teachers: ['Teacher Name', 'Email', 'Role', 'Actions'],
     };
 
     const tableRows = {
@@ -636,25 +636,25 @@ const AdminDashboard = () => {
                 </tr>
             ))
         ),
-        teachers: authLoading ? (
-            <tr><td colSpan="4" className="text-center py-4 text-gray-500 dark:text-gray-400">Loading teachers...</td></tr>
-        ) : authError ? (
-            <tr><td colSpan="4" className="text-center py-4 text-red-500">Error: {authError}</td></tr>
-        ) : filteredTeachers.length === 0 ? (
-            <tr><td colSpan="4" className="text-center py-4 text-gray-500 dark:text-gray-400">No teachers found.</td></tr>
-        ) : (
-            filteredTeachers.map(teacher => (
-                <tr key={teacher.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{teacher.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{teacher.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{teacher.role}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {/* No edit/delete actions for teachers in userSlice, so these are omitted */}
-                        <span className="text-gray-500 dark:text-gray-400">N/A</span>
-                    </td>
-                </tr>
-            ))
-        ),
+        // REMOVED: teachers: authLoading ? (
+        // REMOVED:    <tr><td colSpan="4" className="text-center py-4 text-gray-500 dark:text-gray-400">Loading teachers...</td></tr>
+        // REMOVED: ) : authError ? (
+        // REMOVED:    <tr><td colSpan="4" className="text-center py-4 text-red-500">Error: {authError}</td></tr>
+        // REMOVED: ) : filteredTeachers.length === 0 ? (
+        // REMOVED:    <tr><td colSpan="4" className="text-center py-4 text-gray-500 dark:text-gray-400">No teachers found.</td></tr>
+        // REMOVED: ) : (
+        // REMOVED:    filteredTeachers.map(teacher => (
+        // REMOVED:        <tr key={teacher.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
+        // REMOVED:            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{teacher.name}</td>
+        // REMOVED:            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{teacher.email}</td>
+        // REMOVED:            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{teacher.role}</td>
+        // REMOVED:            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+        // REMOVED:                {/* No edit/delete actions for teachers in userSlice, so these are omitted */}
+        // REMOVED:                <span className="text-gray-500 dark:text-gray-400">N/A</span>
+        // REMOVED:            </td>
+        // REMOVED:        </tr>
+        // REMOVED:    ))
+        // REMOVED: ),
         customers: filteredCustomers.length === 0 ? (
             <tr><td colSpan="5" className="text-center py-4 text-gray-500 dark:text-gray-400">No customer data available via API.</td></tr>
         ) : (
@@ -910,6 +910,8 @@ const AdminDashboard = () => {
                                 <Filter className="w-5 h-5 mr-3" /> Customer Services
                             </motion.button>
                         </li>
+                        {/* REMOVED: Teachers List navigation item */}
+                        {/*
                         <li className="mt-2">
                             <motion.button
                                 onClick={() => setActiveTab('teachers')}
@@ -919,6 +921,7 @@ const AdminDashboard = () => {
                                 <Users className="w-5 h-5 mr-3" /> Teachers List
                             </motion.button>
                         </li>
+                        */}
                     </ul>
                 </nav>
 

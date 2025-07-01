@@ -13,41 +13,17 @@ import NotFound from "../pages/NotFound/NotFound.jsx";
 import { UserProvider } from "../context/UserContext.jsx";
 import DetailPage from "../pages/Detail/DetailPage.jsx";
 
-
 export const router = createBrowserRouter([
   {
     path: "/",
     element: <Layout />,
-    children: [{ path: "/", Component: Home }],
-);
-
-export const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <Layout />
     children: [
-      { path: "/", Component: Home },
+      { path: "/", element: <Home /> },
     ],
   },
   {
     path: "/admin",
-    element: (
-        <AdminLayout />
-    ),
-    children: [
-      {
-        index: true,
-        element: <Admin />,
-      },
-    ],
-  },
-    {
-    path: "/detail/:id",
-    element: (
-
-        <DetailPage />
-
-    ),
+    element: <AdminLayout />,
     children: [
       {
         index: true,
@@ -56,10 +32,12 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    path: "/detail/:id",
+    element: <DetailPage />,
+  },
+  {
     path: "/user",
-    element: (
-        <UserLayout />
-    ),
+    element: <UserLayout />,
     children: [
       {
         index: true,
@@ -71,7 +49,7 @@ export const router = createBrowserRouter([
     path: "/register",
     element: <RegistorLayout />,
     children: [
-      { path: "signup", Component: RegisterForm },
+      { path: "signup", element: <RegisterForm /> },
       { path: "login", element: <LoginForm /> },
     ],
   },
@@ -82,5 +60,5 @@ export const router = createBrowserRouter([
   {
     path: "*",
     element: <NotFound />,
-  }
+  },
 ]);
