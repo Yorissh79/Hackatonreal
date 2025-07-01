@@ -1,6 +1,6 @@
 // authUtils.js
 import Cookies from 'js-cookie';
-import { jwtDecode } from 'jwt-decode'; // Corrected import for jwt-decode
+import { jwtDecode } from 'jwt-decode';
 
 export const getAccessToken = () => {
     return Cookies.get('accessToken');
@@ -15,7 +15,7 @@ export const getRefreshToken = () => {
  * @param {string} token - The JWT to decode.
  * @returns {object | null} The decoded token payload or null.
  */
-const decodeToken = (token) => {
+export const decodeToken = (token) => {
     try {
         return jwtDecode(token);
     } catch (error) {
@@ -46,25 +46,8 @@ export const isAuthenticated = () => {
     return isTokenNotExpired(decodedToken);
 };
 
-export const isAdmin = () => {
-    const accessToken = getAccessToken();
-    if (!accessToken) {
-        return false;
-    }
-    const decodedToken = decodeToken(accessToken);
-    // Assuming your token has a 'role' claim
-    return decodedToken && decodedToken.role === 'admin' && isTokenNotExpired(decodedToken);
-};
-
-export const isUser = () => {
-    const accessToken = getAccessToken();
-    if (!accessToken) {
-        return false;
-    }
-    const decodedToken = decodeToken(accessToken);
-    // Assuming your token has a 'role' claim
-    return decodedToken && decodedToken.role === 'user' && isTokenNotExpired(decodedToken);
-};
+// Functions like isAdmin and isUser will now be handled by the Context API.
+// They are removed from here.
 
 // You might also need a function to refresh tokens
 export const refreshAccessToken = async () => {

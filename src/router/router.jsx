@@ -11,6 +11,7 @@ import UserLayout from "../components/userlayout/UserLayout.jsx";
 import RegistorLayout from "../components/registerlayout/RegistorLayout.jsx";
 import ProtectedRoute from "../components/protectedroute/ProtectedRoute.jsx";
 import NotFound from "../pages/NotFound/NotFound.jsx";
+import { UserProvider } from "../context/UserContext.jsx"; // Import the UserProvider
 
 export const router = createBrowserRouter([
   {
@@ -24,7 +25,11 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    element: <ProtectedRoute allowedRoles={['Admin']} />, // Protect admin routes
+    element: (
+        <UserProvider> {/* Wrap ProtectedRoute and its children with UserProvider */}
+          <ProtectedRoute allowedRoles={['admin']} /> {/* Note: roles should match your JWT 'role' claim values */}
+        </UserProvider>
+    ),
     children: [
       {
         path: "/admin",
@@ -39,7 +44,11 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    element: <ProtectedRoute allowedRoles={['User']} />, // Protect user routes
+    element: (
+        <UserProvider> {/* Wrap ProtectedRoute and its children with UserProvider */}
+          <ProtectedRoute allowedRoles={['user']} /> {/* Note: roles should match your JWT 'role' claim values */}
+        </UserProvider>
+    ),
     children: [
       {
         path: "/user",

@@ -34,7 +34,7 @@ const Home = () => {
             <section className="w-full flex items-center justify-center my-8 bg-white dark:bg-gray-900">
                 <div className="flex flex-col w-4/5 h-60">
                     <h3 className="text-xl text-gray-500 dark:text-gray-400">
-                        <span className="font-semibold text-black dark:text-white">One&Only Resorts</span> > STORIES
+                        <span className="font-semibold text-black dark:text-white">One&Only Resorts</span> {'>'} STORIES
                     </h3>
                     <h1 className="text-3xl text-center mt-10 tracking-widest text-black dark:text-white">
                         THOSE   WHO   WANDER

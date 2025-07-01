@@ -3,11 +3,15 @@ import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { login, resetAuthError } from "../../redux/reducers/userSlice.js";
+import { getAccessToken, decodeToken } from "../../utils/auth.js";
+import { useUser } from "../../context/UserContext.jsx";
+import Cookies from 'js-cookie';
 
 const LoginForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.userSlice);
+  const { loginUser } = useUser();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -17,7 +21,6 @@ const LoginForm = () => {
   const [formErrors, setFormErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
-  // Clear Redux error when component mounts or on unmount
   useEffect(() => {
     dispatch(resetAuthError());
     return () => {
@@ -48,14 +51,12 @@ const LoginForm = () => {
       [name]: value,
     }));
 
-    // Clear form-specific error when user starts typing
     if (formErrors[name]) {
       setFormErrors((prev) => ({
         ...prev,
         [name]: "",
       }));
     }
-    // Also clear Redux error on input change
     if (error) {
       dispatch(resetAuthError());
     }
@@ -71,42 +72,56 @@ const LoginForm = () => {
     }
 
     try {
-      // Dispatch the login async thunk and wait for the result
       const resultAction = await dispatch(login(formData)).unwrap();
 
       if (resultAction) {
-        switch (resultAction.role) {
-          case "Admin":
-            navigate("/admin", { replace: true });
-            break;
-          case "User":
-            navigate("/user", { replace: true });
-            break;
-          default:
+        console.log("Cookies after login attempt:", Cookies.get());
+        console.log("accessToken cookie value (direct):", Cookies.get('accessToken'));
+
+        const accessToken = getAccessToken();
+
+        if (accessToken && typeof accessToken === 'string') {
+          const decodedToken = decodeToken(accessToken);
+
+          if (decodedToken && decodedToken.role) {
+            loginUser(accessToken); // Store user info in context
+
+            switch (decodedToken.role) {
+              case "admin":
+                navigate("/admin", { replace: true });
+                break;
+              case "user":
+                navigate("/user", { replace: true });
+                break;
+              default:
+                navigate("/", { replace: true });
+                break;
+            }
+          } else {
+            console.warn("Decoded token or role not found after login.");
             navigate("/", { replace: true });
-            break;
+          }
+        } else {
+          console.error("Access token not found or invalid after successful login. This might indicate the backend didn't set the cookie or there's a timing issue.");
+          navigate("/login", { replace: true });
         }
       }
     } catch (err) {
       console.error("Login failed:", err);
-      // The error is already handled by the Redux state, so no further action is needed here.
     }
   };
 
   return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
-          {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
             <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-600 mx-auto rounded-full mb-4"></div>
             <p className="text-gray-400">Sign in to your account</p>
           </div>
 
-          {/* Form Card */}
           <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-600 p-8 shadow-2xl backdrop-blur-sm">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Email */}
               <div>
                 <label
                     htmlFor="email"
@@ -136,7 +151,6 @@ const LoginForm = () => {
                 )}
               </div>
 
-              {/* Password */}
               <div>
                 <label
                     htmlFor="password"
@@ -170,14 +184,12 @@ const LoginForm = () => {
                 )}
               </div>
 
-              {/* Redux Error Display */}
               {error && (
                   <p className="text-red-400 text-sm text-center">
                     {error}
                   </p>
               )}
 
-              {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center text-gray-400">
                   <input
@@ -194,7 +206,6 @@ const LoginForm = () => {
                 </a>
               </div>
 
-              {/* Submit Button */}
               <button
                   type="submit"
                   disabled={loading}
@@ -210,7 +221,6 @@ const LoginForm = () => {
                 )}
               </button>
 
-              {/* Register Link */}
               <div className="text-center pt-4 border-t border-gray-700">
                 <p className="text-gray-400 text-sm">
                   Don't have an account?{" "}
@@ -225,7 +235,6 @@ const LoginForm = () => {
             </form>
           </div>
 
-          {/* Security Notice */}
           <div className="text-center mt-6 text-gray-500 text-xs">
             <p className="flex items-center justify-center">
               <span className="mr-1">🔒</span>
