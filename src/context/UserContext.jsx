@@ -1,64 +1,214 @@
-// src/context/UserContext.jsx
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import { getAccessToken, decodeToken, isAuthenticated as checkAuthStatus } from '../utils/auth'; // Import from auth.js
+// UserContext.jsx
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getAccessToken, decodeToken } from '../utils/auth.js';
+import Cookies from 'js-cookie';
 
-const UserContext = createContext(null);
+// Create the UserContext
+const UserContext = createContext();
 
-export const UserProvider = ({ children }) => {
-    const [user, setUser] = useState(null); // { role: 'admin' | 'user', isAuthenticated: boolean }
-    const [loading, setLoading] = useState(true);
-
-    const initializeUser = useCallback(() => {
-        setLoading(true);
-        const token = getAccessToken();
-        if (token && checkAuthStatus()) { // Check if token exists and is not expired
-            const decoded = decodeToken(token);
-            if (decoded && decoded.role) {
-                setUser({ role: decoded.role, isAuthenticated: true });
-            } else {
-                setUser({ role: null, isAuthenticated: false });
-            }
-        } else {
-            setUser({ role: null, isAuthenticated: false });
-        }
-        setLoading(false);
-    }, []);
-
-    useEffect(() => {
-        initializeUser();
-        // You might want to re-initialize if the accessToken cookie changes
-        // This is a basic setup, for more robust solutions, consider
-        // listening to cookie changes or refreshing context on route changes.
-    }, [initializeUser]);
-
-    const loginUser = (token) => {
-        // When logging in, decode the new token and set the user
-        const decoded = decodeToken(token);
-        if (decoded && decoded.role) {
-            setUser({ role: decoded.role, isAuthenticated: true });
-        } else {
-            setUser({ role: null, isAuthenticated: true }); // Assume authenticated if token exists, but role is missing
-        }
-    };
-
-    const logoutUser = () => {
-        setUser({ role: null, isAuthenticated: false });
-        // You should also clear cookies here or wherever your logout logic is handled
-        // Cookies.remove('accessToken');
-        // Cookies.remove('refreshToken');
-    };
-
-    return (
-        <UserContext.Provider value={{ user, loading, loginUser, logoutUser, initializeUser }}>
-            {children}
-        </UserContext.Provider>
-    );
-};
-
+// Custom hook to use the UserContext
 export const useUser = () => {
     const context = useContext(UserContext);
     if (!context) {
         throw new Error('useUser must be used within a UserProvider');
     }
     return context;
+};
+
+// Client-side token validation (no backend calls)
+const isTokenValid = (token) => {
+    if (!token) return false;
+
+    try {
+        const decodedToken = decodeToken(token);
+        if (!decodedToken) return false;
+
+        // Check if token is expired
+        const currentTime = Date.now() / 1000;
+        if (decodedToken.exp && decodedToken.exp < currentTime) {
+            console.log('Token is expired');
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Token validation error:', error);
+        return false;
+    }
+};
+
+// UserProvider component
+export const UserProvider = ({ children }) => {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    // Initialize user from token on mount
+    useEffect(() => {
+        initializeUser();
+    }, []);
+
+    const initializeUser = () => {
+        try {
+            setLoading(true);
+            const accessToken = getAccessToken();
+
+            if (accessToken && isTokenValid(accessToken)) {
+                const decodedToken = decodeToken(accessToken);
+
+                if (decodedToken && decodedToken.role) {
+                    const userData = {
+                        id: decodedToken.id || decodedToken.userId || decodedToken.sub,
+                        email: decodedToken.email,
+                        role: decodedToken.role,
+                        name: decodedToken.name || decodedToken.username,
+                        // Add any other fields from your JWT payload
+                        exp: decodedToken.exp,
+                        iat: decodedToken.iat
+                    };
+
+                    setUser(userData);
+                    setIsLoggedIn(true);
+                    console.log('User initialized from token:', userData);
+                } else {
+                    console.log('Invalid token structure or missing role');
+                    clearUser();
+                }
+            } else {
+                console.log('No valid access token found');
+                clearUser();
+            }
+        } catch (error) {
+            console.error('Error initializing user:', error);
+            clearUser();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loginUser = (accessToken) => {
+        try {
+            if (!accessToken) {
+                console.error('No access token provided to loginUser');
+                return false;
+            }
+
+            if (!isTokenValid(accessToken)) {
+                console.error('Invalid or expired token provided to loginUser');
+                return false;
+            }
+
+            const decodedToken = decodeToken(accessToken);
+
+            if (decodedToken && decodedToken.role) {
+                const userData = {
+                    id: decodedToken.id || decodedToken.userId || decodedToken.sub,
+                    email: decodedToken.email,
+                    role: decodedToken.role,
+                    name: decodedToken.name || decodedToken.username,
+                    exp: decodedToken.exp,
+                    iat: decodedToken.iat
+                };
+
+                setUser(userData);
+                setIsLoggedIn(true);
+                console.log('User logged in successfully:', userData);
+                return true;
+            } else {
+                console.error('Failed to decode token or missing role in loginUser');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error in loginUser:', error);
+            return false;
+        }
+    };
+
+    const logoutUser = () => {
+        // Clear cookies
+        Cookies.remove('accessToken');
+        Cookies.remove('refreshToken');
+
+        // Clear user state
+        clearUser();
+
+        console.log('User logged out successfully');
+    };
+
+    const clearUser = () => {
+        setUser(null);
+        setIsLoggedIn(false);
+    };
+
+    const updateUser = (userData) => {
+        setUser(prevUser => ({
+            ...prevUser,
+            ...userData
+        }));
+    };
+
+    // Check if current user is still valid (token not expired)
+    const isCurrentUserValid = () => {
+        if (!isLoggedIn || !user) return false;
+
+        const accessToken = getAccessToken();
+        return isTokenValid(accessToken);
+    };
+
+    // Helper functions to check user role
+    const isAdmin = () => {
+        return isCurrentUserValid() && user?.role === 'admin';
+    };
+
+    const isUser = () => {
+        return isCurrentUserValid() && user?.role === 'user';
+    };
+
+    const hasRole = (role) => {
+        return isCurrentUserValid() && user?.role === role;
+    };
+
+    const hasAnyRole = (roles) => {
+        return isCurrentUserValid() && roles.includes(user?.role);
+    };
+
+    // Check authentication status
+    const isAuthenticated = () => {
+        return isCurrentUserValid();
+    };
+
+    // Context value
+    const contextValue = {
+        // User data
+        user,
+        isLoggedIn,
+        loading,
+
+        // Actions
+        loginUser,
+        logoutUser,
+        updateUser,
+        initializeUser,
+
+        // Authentication check
+        isAuthenticated,
+
+        // Role checkers
+        isAdmin,
+        isUser,
+        hasRole,
+        hasAnyRole,
+
+        // Direct access to user properties for convenience
+        userRole: user?.role,
+        userId: user?.id,
+        userEmail: user?.email,
+        userName: user?.name
+    };
+
+    return (
+        <UserContext.Provider value={contextValue}>
+            {children}
+        </UserContext.Provider>
+    );
 };

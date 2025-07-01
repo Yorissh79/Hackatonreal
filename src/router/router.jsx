@@ -11,12 +11,19 @@ import UserLayout from "../components/userlayout/UserLayout.jsx";
 import RegistorLayout from "../components/registerlayout/RegistorLayout.jsx";
 import ProtectedRoute from "../components/protectedroute/ProtectedRoute.jsx";
 import NotFound from "../pages/NotFound/NotFound.jsx";
-import { UserProvider } from "../context/UserContext.jsx"; // Import the UserProvider
+import { UserProvider } from "../context/UserContext.jsx";
+
+// Root component that wraps everything with UserProvider
+const RootWrapper = ({ children }) => (
+    <UserProvider>
+      {children}
+    </UserProvider>
+);
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    Component: Layout,
+    element: <RootWrapper><Layout /></RootWrapper>,
     children: [
       {
         path: "/",
@@ -25,18 +32,19 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    path: "/admin",
     element: (
-        <UserProvider> {/* Wrap ProtectedRoute and its children with UserProvider */}
-          <ProtectedRoute allowedRoles={['admin']} /> {/* Note: roles should match your JWT 'role' claim values */}
-        </UserProvider>
+        <RootWrapper>
+          <ProtectedRoute allowedRoles={['admin']} />
+        </RootWrapper>
     ),
     children: [
       {
         path: "/admin",
-        Component: AdminLayout, // AdminLayout now wraps the Admin component
+        Component: AdminLayout,
         children: [
           {
-            path: "/admin", // This path will be relative to the parent, so it's still "/admin"
+            index: true, // This makes it the default route for /admin
             Component: Admin,
           },
         ],
@@ -44,10 +52,11 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    path: "/user",
     element: (
-        <UserProvider> {/* Wrap ProtectedRoute and its children with UserProvider */}
-          <ProtectedRoute allowedRoles={['user']} /> {/* Note: roles should match your JWT 'role' claim values */}
-        </UserProvider>
+        <RootWrapper>
+          <ProtectedRoute allowedRoles={['user']} />
+        </RootWrapper>
     ),
     children: [
       {
@@ -55,7 +64,7 @@ export const router = createBrowserRouter([
         Component: UserLayout,
         children: [
           {
-            path: "/user",
+            index: true, // This makes it the default route for /user
             Component: User,
           },
         ],
@@ -64,25 +73,24 @@ export const router = createBrowserRouter([
   },
   {
     path: "/register",
-    Component: RegistorLayout,
+    element: <RootWrapper><RegistorLayout /></RootWrapper>,
     children: [
       {
-        path: "/register/signup",
+        path: "signup", // relative path, so it becomes /register/signup
         Component: RegisterForm,
       },
       {
-        path: "/register/login",
-        Component: LoginForm,
+        path: "login", // relative path, so it becomes /register/login
+        element: <RootWrapper><LoginForm /></RootWrapper>,
       },
     ],
   },
-  // A dedicated login route is better than nesting it under register
   {
     path: "/login",
-    Component: LoginForm
+    element: <RootWrapper><LoginForm /></RootWrapper>
   },
   {
     path: "*",
-    Component: NotFound,
+    element: <RootWrapper><NotFound /></RootWrapper>,
   }
 ]);

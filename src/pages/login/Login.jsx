@@ -11,7 +11,9 @@ const LoginForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.userSlice);
-  const { loginUser } = useUser();
+
+  // Use the UserContext
+  const { loginUser, isLoggedIn, userRole } = useUser();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -21,12 +23,34 @@ const LoginForm = () => {
   const [formErrors, setFormErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isLoggedIn && userRole) {
+      console.log('User already logged in, redirecting...');
+      redirectBasedOnRole(userRole);
+    }
+  }, [isLoggedIn, userRole, navigate]);
+
   useEffect(() => {
     dispatch(resetAuthError());
     return () => {
       dispatch(resetAuthError());
     };
   }, [dispatch]);
+
+  const redirectBasedOnRole = (role) => {
+    switch (role) {
+      case "admin":
+        navigate("/admin", { replace: true });
+        break;
+      case "user":
+        navigate("/user", { replace: true });
+        break;
+      default:
+        navigate("/", { replace: true });
+        break;
+    }
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -84,18 +108,15 @@ const LoginForm = () => {
           const decodedToken = decodeToken(accessToken);
 
           if (decodedToken && decodedToken.role) {
-            loginUser(accessToken); // Store user info in context
+            // Use UserContext to store user info
+            const loginSuccess = loginUser(accessToken);
 
-            switch (decodedToken.role) {
-              case "admin":
-                navigate("/admin", { replace: true });
-                break;
-              case "user":
-                navigate("/user", { replace: true });
-                break;
-              default:
-                navigate("/", { replace: true });
-                break;
+            if (loginSuccess) {
+              console.log('User context updated successfully');
+              redirectBasedOnRole(decodedToken.role);
+            } else {
+              console.error('Failed to update user context');
+              navigate("/login", { replace: true });
             }
           } else {
             console.warn("Decoded token or role not found after login.");
