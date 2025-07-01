@@ -6,6 +6,7 @@ import LoginForm from "../pages/login/Login.jsx";
 import Admin from "../pages/admin/Admin.jsx";
 import adminLayout from "../components/adminlayout/AdminLayout.jsx";
 import User from "../pages/user/User.jsx";
+import UserLayout from "../components/layout/UserLayout.jsx";
 
 export const router = createBrowserRouter([
   {
@@ -24,10 +25,6 @@ export const router = createBrowserRouter([
         path: "/login",
         Component: LoginForm,
       },
-      {
-        path: "/user",
-        Component: User,
-      },
     ],
   },
   {
@@ -37,7 +34,17 @@ export const router = createBrowserRouter([
       {
         path: "/admin",
         Component: Admin,
-      }
-    ]
-  }
+      },
+    ],
+  },
+  {
+    path: "/user",
+    Component: UserLayout,
+    children: [
+      {
+        path: "/",
+        Component: User,
+      },
+    ],
+  },
 ]);
