@@ -27,57 +27,101 @@ const RegisterForm = () => {
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "0 auto" }}>
-      <h2>Register</h2>
-      <Formik
-        initialValues={initialValues}
-        validationSchema={validationSchema}
-        onSubmit={onSubmit}
-      >
-        <Form>
-          <div>
-            <label htmlFor="fullName">Full Name</label>
-            <Field type="text" id="fullName" name="fullName" />
-            <ErrorMessage
-              name="fullName"
-              component="div"
-              style={{ color: "red" }}
-            />
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <div className="w-full max-w-md bg-white p-8 rounded-lg shadow">
+        <h2 className="text-2xl font-semibold text-center mb-6">Register</h2>
+        <Formik
+          initialValues={initialValues}
+          validationSchema={validationSchema}
+          onSubmit={onSubmit}
+        >
+          <Form className="space-y-4">
+            <div>
+              <label
+                htmlFor="fullName"
+                className="block text-sm font-medium mb-1"
+              >
+                Full Name
+              </label>
+              <Field
+                type="text"
+                id="fullName"
+                name="fullName"
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <ErrorMessage
+                name="fullName"
+                component="div"
+                className="text-sm text-red-600 mt-1"
+              />
+            </div>
 
-          <div>
-            <label htmlFor="email">Email</label>
-            <Field type="email" id="email" name="email" />
-            <ErrorMessage
-              name="email"
-              component="div"
-              style={{ color: "red" }}
-            />
-          </div>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium mb-1">
+                Email
+              </label>
+              <Field
+                type="email"
+                id="email"
+                name="email"
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <ErrorMessage
+                name="email"
+                component="div"
+                className="text-sm text-red-600 mt-1"
+              />
+            </div>
 
-          <div>
-            <label htmlFor="phoneNumber">Phone Number</label>
-            <Field type="text" id="phoneNumber" name="phoneNumber" />
-            <ErrorMessage
-              name="phoneNumber"
-              component="div"
-              style={{ color: "red" }}
-            />
-          </div>
+            <div>
+              <label
+                htmlFor="phoneNumber"
+                className="block text-sm font-medium mb-1"
+              >
+                Phone Number
+              </label>
+              <Field
+                type="text"
+                id="phoneNumber"
+                name="phoneNumber"
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <ErrorMessage
+                name="phoneNumber"
+                component="div"
+                className="text-sm text-red-600 mt-1"
+              />
+            </div>
 
-          <div>
-            <label htmlFor="password">Password</label>
-            <Field type="password" id="password" name="password" />
-            <ErrorMessage
-              name="password"
-              component="div"
-              style={{ color: "red" }}
-            />
-          </div>
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium mb-1"
+              >
+                Password
+              </label>
+              <Field
+                type="password"
+                id="password"
+                name="password"
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <ErrorMessage
+                name="password"
+                component="div"
+                className="text-sm text-red-600 mt-1"
+              />
+            </div>
 
-          <button type="submit">Register</button>
-        </Form>
-      </Formik>
+            <button
+              type="submit"
+              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
+            >
+              Register
+            </button>
+          </Form>
+        </Formik>
+      </div>
     </div>
   );
 };
