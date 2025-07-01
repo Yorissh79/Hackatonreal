@@ -1,27 +1,18 @@
 import React, { useState, createContext, useContext, useEffect, useRef } from 'react';
-import { Plus, Edit2, Trash2, Users, BedDouble, Settings, Search, Filter, ConciergeBell } from 'lucide-react'; // Removed Sun and Moon
-import { AnimatePresence, motion } from 'framer-motion'; // Import motion
+import { Plus, Edit2, Trash2, Users, BedDouble, Settings, Search, Filter, ConciergeBell, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useSelector, useDispatch } from 'react-redux';
 
-// --- Context for Theme and Data (Simplified "Slice" Concept) ---
+// Import Redux Thunks and actions from your slices
+import { fetchRooms, addRoom, updateRoom, deleteRoom, fetchRoomById, clearCurrentRoom, clearRoomError } from '../../redux/reducers/roomSlice'; // Adjust path if necessary
+import { getReservationTable, createReservation, updateReservation, deleteReservation, getReservationById, clearCurrentReservation, resetReservationError } from '../../redux/reducers/reservationSlice'; // Adjust path if necessary
+// REMOVED: import { getAllTeachers, resetAuthError } from '../../redux/reducers/userSlice'; // Adjust path if necessary
+
+// --- Context for Theme ---
 const AdminContext = createContext();
 
 const AdminProvider = ({ children }) => {
     const [isDarkMode, setIsDarkMode] = useState(false);
-    const [rooms, setRooms] = useState([
-        { id: 1, number: '101', type: 'Single', status: 'Available', price: 120, images: [] },
-        { id: 2, number: '102', type: 'Double', status: 'Occupied', price: 180, images: [] },
-        { id: 3, number: '201', type: 'Suite', status: 'Maintenance', price: 350, images: [] },
-    ]);
-    const [customers, setCustomers] = useState([
-        { id: 1, name: 'John Smith', email: 'john@example.com', phone: '+1234567890', room: '102' },
-        { id: 2, name: 'Sarah Johnson', email: 'sarah@example.com', phone: '+0987654321', room: '305' },
-    ]);
-    const [services, setServices] = useState([
-        { id: 1, name: 'Room Service', price: 25, category: 'Food & Beverage' },
-        { id: 2, name: 'Laundry', price: 15, category: 'Housekeeping' },
-        { id: 3, name: 'Spa Treatment', price: 120, category: 'Wellness' },
-    ]);
-    const [customerServices, setCustomerServices] = useState([]); // New state for customer-service associations
 
     // Persist dark mode preference
     useEffect(() => {
@@ -48,52 +39,9 @@ const AdminProvider = ({ children }) => {
         });
     };
 
-    const addOrUpdateItem = (type, itemData) => {
-        if (type === 'room') {
-            if (itemData.id) {
-                setRooms(rooms.map(room => room.id === itemData.id ? { ...room, ...itemData, price: Number(itemData.price) } : room));
-            } else {
-                setRooms([...rooms, { id: Date.now(), ...itemData, price: Number(itemData.price) }]);
-            }
-        } else if (type === 'customer') {
-            if (itemData.id) {
-                setCustomers(customers.map(customer => customer.id === itemData.id ? { ...customer, ...itemData } : customer));
-            } else {
-                setCustomers([...customers, { id: Date.now(), ...itemData }]);
-            }
-        } else if (type === 'service') {
-            if (itemData.id) {
-                setServices(services.map(service => service.id === itemData.id ? { ...service, ...itemData, price: Number(itemData.price) } : service));
-            } else {
-                setServices([...services, { id: Date.now(), ...itemData, price: Number(itemData.price) }]);
-            }
-        }
-    };
-
-    const deleteItem = (type, id) => {
-        if (type === 'room') {
-            setRooms(rooms.filter(room => room.id !== id));
-        } else if (type === 'customer') {
-            setCustomers(customers.filter(customer => customer.id !== id));
-        } else if (type === 'service') {
-            setServices(services.filter(service => service.id !== id));
-        }
-    };
-
-    const addCustomerService = (customerId, serviceId, quantity = 1) => {
-        setCustomerServices(prev => [...prev, { id: Date.now(), customerId, serviceId, quantity }]);
-    };
-
-    const deleteCustomerService = (id) => {
-        setCustomerServices(prev => prev.filter(cs => cs.id !== id));
-    };
-
     return (
         <AdminContext.Provider value={{
             isDarkMode, toggleDarkMode,
-            rooms, customers, services, customerServices,
-            addOrUpdateItem, deleteItem,
-            addCustomerService, deleteCustomerService
         }}>
             {children}
         </AdminContext.Provider>
@@ -110,7 +58,7 @@ const Modal = ({ children, title, onClose }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={onClose} // Close when clicking outside
+                onClick={onClose}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="modal-title"
@@ -121,7 +69,7 @@ const Modal = ({ children, title, onClose }) => {
                     animate={{ scale: 1, y: 0 }}
                     exit={{ scale: 0.9, y: 50 }}
                     transition={{ type: "spring", damping: 20, stiffness: 300 }}
-                    onClick={e => e.stopPropagation()} // Prevent modal from closing when clicking inside
+                    onClick={e => e.stopPropagation()}
                 >
                     <div className="flex justify-between items-center mb-6">
                         <h2 id="modal-title" className="text-2xl font-bold text-gray-800 dark:text-white">{title}</h2>
@@ -148,7 +96,6 @@ const FormField = ({ label, name, value, onChange, type = 'text', options = [], 
     useEffect(() => {
         if (inputRef.current && required && !value) {
             // Simple validation feedback on initial render if required and empty
-            // More robust validation would be handled by a form library or onSubmit
         }
     }, [value, required]);
 
@@ -195,19 +142,36 @@ const RoomForm = ({ item, onSubmit, onCancel }) => {
         price: item?.price || '',
     });
 
+    useEffect(() => {
+        if (item) {
+            setFormData({
+                number: item.number || '',
+                type: item.type || 'Single',
+                status: item.status || 'Available',
+                price: item.price || '',
+            });
+        } else {
+            setFormData({
+                number: '',
+                type: 'Single',
+                status: 'Available',
+                price: '',
+            });
+        }
+    }, [item]);
+
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = (e) => {
-        e.preventDefault(); // Prevent default form submission
+        e.preventDefault();
         if (formData.number && formData.type && formData.status && formData.price) {
-            onSubmit(formData);
+            onSubmit(formData, 'room');
         } else {
-            // Basic client-side validation feedback
             console.error("Please fill all required fields.");
-            // In a real app, you'd show a user-friendly message
         }
     };
 
@@ -267,6 +231,7 @@ const RoomForm = ({ item, onSubmit, onCancel }) => {
 };
 
 const CustomerForm = ({ item, onSubmit, onCancel }) => {
+    // This form still uses local state and mock data because no corresponding Redux slice was provided.
     const [formData, setFormData] = useState({
         name: item?.name || '',
         email: item?.email || '',
@@ -282,7 +247,7 @@ const CustomerForm = ({ item, onSubmit, onCancel }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (formData.name && formData.email && formData.phone && formData.room) {
-            onSubmit(formData);
+            onSubmit(formData, 'customer');
         } else {
             console.error("Please fill all required fields.");
         }
@@ -318,6 +283,7 @@ const CustomerForm = ({ item, onSubmit, onCancel }) => {
 };
 
 const ServiceForm = ({ item, onSubmit, onCancel }) => {
+    // This form still uses local state and mock data because no corresponding Redux slice was provided.
     const [formData, setFormData] = useState({
         name: item?.name || '',
         category: item?.category || 'Food & Beverage',
@@ -332,7 +298,7 @@ const ServiceForm = ({ item, onSubmit, onCancel }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (formData.name && formData.category && formData.price) {
-            onSubmit(formData);
+            onSubmit(formData, 'service');
         } else {
             console.error("Please fill all required fields.");
         }
@@ -380,11 +346,12 @@ const ServiceForm = ({ item, onSubmit, onCancel }) => {
     );
 };
 
-const CustomerServiceForm = ({ onSubmit, onCancel, customers, services }) => {
+const CustomerServiceForm = ({ customers, services, onSubmit, onCancel }) => {
+    // This form still uses local state and mock data because no corresponding Redux slice was provided for customer services.
     const [formData, setFormData] = useState({
-        customerId: '',
-        serviceId: '',
-        quantity: 1
+        customerId: customers[0]?.id || '',
+        serviceId: services[0]?.id || '',
+        quantity: 1,
     });
 
     const handleInputChange = (e) => {
@@ -394,41 +361,34 @@ const CustomerServiceForm = ({ onSubmit, onCancel, customers, services }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (formData.customerId && formData.serviceId) {
+        if (formData.customerId && formData.serviceId && formData.quantity) {
             onSubmit(formData.customerId, formData.serviceId, Number(formData.quantity));
         } else {
-            console.error("Please select a customer and a service.");
+            console.error("Please fill all required fields.");
         }
     };
 
     return (
         <form onSubmit={handleSubmit}>
             <FormField
-                label="Select Customer"
+                label="Customer"
                 name="customerId"
                 value={formData.customerId}
                 onChange={handleInputChange}
                 type="select"
-                options={[{ value: '', label: 'Choose a customer' }, ...customers.map(c => ({ value: c.id, label: c.name }))]}
+                options={customers.map(c => ({ value: c.id, label: c.name }))}
                 required
             />
             <FormField
-                label="Select Service"
+                label="Service"
                 name="serviceId"
                 value={formData.serviceId}
                 onChange={handleInputChange}
                 type="select"
-                options={[{ value: '', label: 'Choose a service' }, ...services.map(s => ({ value: s.id, label: s.name }))]}
+                options={services.map(s => ({ value: s.id, label: s.name }))}
                 required
             />
-            <FormField
-                label="Quantity"
-                name="quantity"
-                type="number"
-                value={formData.quantity}
-                onChange={handleInputChange}
-                required
-            />
+            <FormField label="Quantity" name="quantity" type="number" value={formData.quantity} onChange={handleInputChange} required />
             <div className="flex gap-2 mt-6">
                 <motion.button
                     type="submit"
@@ -452,48 +412,103 @@ const CustomerServiceForm = ({ onSubmit, onCancel, customers, services }) => {
     );
 };
 
-
-// --- Main Admin Dashboard Component ---
-
 const AdminDashboard = () => {
-    const { isDarkMode, toggleDarkMode, rooms, customers, services, customerServices, addOrUpdateItem, deleteItem, addCustomerService, deleteCustomerService } = useContext(AdminContext);
+    const { isDarkMode, toggleDarkMode } = useContext(AdminContext);
+    const dispatch = useDispatch();
 
+    // Selectors for Room Management
+    const { rooms, loading: roomsLoading, error: roomsError, currentRoom } = useSelector((state) => state.roomSlice);
+
+    // Selectors for Reservation Management
+    const { tableData: reservationTableData, loading: reservationLoading, error: reservationError, currentReservation } = useSelector((state) => state.reservationSlice);
+
+    // REMOVED: Selectors for User/Auth (teachers)
+    // REMOVED: const { teachers, loading: authLoading, error: authError } = useSelector((state) => state.userSlice);
+
+    // Local state for UI
     const [activeTab, setActiveTab] = useState('rooms');
     const [showModal, setShowModal] = useState(false);
     const [modalType, setModalType] = useState('');
     const [editingItem, setEditingItem] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
+    // Fetch data on component mount based on active tab
+    useEffect(() => {
+        if (activeTab === 'rooms') {
+            dispatch(fetchRooms());
+        } else if (activeTab === 'reservations') {
+            dispatch(getReservationTable());
+        }
+        // REMOVED: else if (activeTab === 'teachers') {
+        // REMOVED:    dispatch(getAllTeachers());
+        // REMOVED: }
+    }, [activeTab, dispatch]);
+
     const openModal = (type, item = null) => {
         setModalType(type);
         setEditingItem(item);
         setShowModal(true);
+        if (type === 'room' && item?.id) {
+            dispatch(fetchRoomById(item.id));
+        } else if (type === 'reservation' && item?.id) {
+            dispatch(getReservationById(item.id));
+        } else {
+            dispatch(clearCurrentRoom());
+            dispatch(clearCurrentReservation());
+        }
     };
 
     const closeModal = () => {
         setShowModal(false);
         setEditingItem(null);
+        dispatch(clearCurrentRoom());
+        dispatch(clearRoomError());
+        dispatch(clearCurrentReservation());
+        dispatch(resetReservationError());
+        // REMOVED: dispatch(resetAuthError());
     };
 
-    const handleSubmit = (data, type) => {
-        addOrUpdateItem(type, data);
-        closeModal();
+    const handleSubmit = async (data, type) => {
+        try {
+            if (type === 'room') {
+                if (editingItem) {
+                    await dispatch(updateRoom({ ...data, id: editingItem.id })).unwrap();
+                } else {
+                    await dispatch(addRoom(data)).unwrap();
+                }
+            } else if (type === 'reservation') {
+                if (editingItem) {
+                    await dispatch(updateReservation({ ...data, id: editingItem.id })).unwrap();
+                } else {
+                    await dispatch(createReservation(data)).unwrap();
+                }
+            }
+            // Customer and Service forms do not have corresponding Redux slices
+            closeModal();
+        } catch (err) {
+            console.error(`Failed to ${editingItem ? 'update' : 'add'} ${type}:`, err);
+        }
+    };
+
+    const handleDelete = async (type, id) => {
+        if (window.confirm(`Are you sure you want to delete this ${type}?`)) {
+            try {
+                if (type === 'room') {
+                    await dispatch(deleteRoom(id)).unwrap();
+                } else if (type === 'reservation') {
+                    await dispatch(deleteReservation(id)).unwrap();
+                }
+            } catch (err) {
+                console.error(`Failed to delete ${type}:`, err);
+            }
+        }
     };
 
     const handleAddCustomerService = (customerId, serviceId, quantity) => {
-        addCustomerService(customerId, serviceId, quantity);
+        // This function would typically dispatch an action to a `customerServiceSlice`
+        // if one were provided. For now, it's a placeholder.
+        console.warn("Customer service assignment requires a dedicated API and Redux slice.");
         closeModal();
-    };
-
-    const handleDelete = (type, id) => {
-        // In a real app, you'd show a confirmation dialog here
-        if (window.confirm(`Are you sure you want to delete this ${type}?`)) {
-            if (type === 'customerService') {
-                deleteCustomerService(id);
-            } else {
-                deleteItem(type, id);
-            }
-        }
     };
 
     const getStatusColor = (status) => {
@@ -505,321 +520,437 @@ const AdminDashboard = () => {
         }
     };
 
-    const filteredRooms = rooms.filter(room =>
-        room.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        room.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        room.status.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Filter data based on active tab and search term
+    const getFilteredData = (data, fieldsToSearch) => {
+        if (!data) return [];
+        return data.filter(item =>
+            fieldsToSearch.some(field =>
+                item[field]?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+            )
+        );
+    };
 
-    const filteredCustomers = customers.filter(customer =>
-        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (customer.room && customer.room.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredRooms = getFilteredData(rooms, ['number', 'type', 'status']);
+    const filteredReservations = getFilteredData(reservationTableData, ['customerName', 'roomNumber', 'status']);
+    // REMOVED: const filteredTeachers = getFilteredData(teachers, ['name', 'email']);
 
-    const filteredServices = services.filter(service =>
-        service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        service.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Placeholders for Customers and Services as no Redux slices were provided for them
+    const mockCustomers = [];
+    const mockServices = [];
+    const mockCustomerServices = [];
 
-    const filteredCustomerServices = customerServices.filter(cs => {
-        const customer = customers.find(c => c.id === cs.customerId);
-        const service = services.find(s => s.id === cs.serviceId);
-        const customerName = customer ? customer.name.toLowerCase() : '';
-        const serviceName = service ? service.name.toLowerCase() : '';
-        return customerName.includes(searchTerm.toLowerCase()) || serviceName.includes(searchTerm.toLowerCase());
-    });
+    const filteredCustomers = getFilteredData(mockCustomers, ['name', 'email', 'room']);
+    const filteredServices = getFilteredData(mockServices, ['name', 'category']);
+    const filteredCustomerServices = getFilteredData(mockCustomerServices, ['customerName', 'serviceName']);
 
-    // Dynamic content for tables
+
     const tableHeaders = {
         rooms: ['Room Number', 'Type', 'Status', 'Price/Night', 'Actions'],
-        customers: ['Name', 'Email', 'Phone', 'Room', 'Actions'],
-        services: ['Service Name', 'Category', 'Price', 'Actions'],
-        customerServices: ['Customer', 'Service', 'Quantity', 'Actions']
+        customers: ['Name', 'Email', 'Phone', 'Room', 'Actions'], // Placeholder
+        services: ['Service Name', 'Category', 'Price', 'Actions'], // Placeholder
+        customerServices: ['Customer', 'Service', 'Quantity', 'Actions'], // Placeholder
+        reservations: ['Reservation ID', 'Room Number', 'Customer', 'Check-in', 'Check-out', 'Status', 'Actions'],
+        // REMOVED: teachers: ['Teacher Name', 'Email', 'Role', 'Actions'],
     };
 
     const tableRows = {
-        rooms: filteredRooms.map(room => (
-            <tr key={room.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{room.number}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{room.type}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2.5 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(room.status)}`}>
-                        {room.status}
-                    </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">${room.price}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <motion.button
-                        onClick={() => openModal('room', room)}
-                        className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out"
-                        title="Edit Room"
-                        aria-label={`Edit room ${room.number}`}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                    >
-                        <Edit2 className="w-4 h-4" />
-                    </motion.button>
-                    <motion.button
-                        onClick={() => handleDelete('room', room.id)}
-                        className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition duration-150 ease-in-out ml-2"
-                        title="Delete Room"
-                        aria-label={`Delete room ${room.number}`}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </motion.button>
-                </td>
-            </tr>
-        )),
-        customers: filteredCustomers.map(customer => (
-            <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{customer.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{customer.email}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{customer.phone}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{customer.room}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <motion.button
-                        onClick={() => openModal('customer', customer)}
-                        className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out"
-                        title="Edit Customer"
-                        aria-label={`Edit customer ${customer.name}`}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                    >
-                        <Edit2 className="w-4 h-4" />
-                    </motion.button>
-                    <motion.button
-                        onClick={() => handleDelete('customer', customer.id)}
-                        className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition duration-150 ease-in-out ml-2"
-                        title="Delete Customer"
-                        aria-label={`Delete customer ${customer.name}`}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </motion.button>
-                </td>
-            </tr>
-        )),
-        services: filteredServices.map(service => (
-            <tr key={service.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{service.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{service.category}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">${service.price}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <motion.button
-                        onClick={() => openModal('service', service)}
-                        className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out"
-                        title="Edit Service"
-                        aria-label={`Edit service ${service.name}`}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                    >
-                        <Edit2 className="w-4 h-4" />
-                    </motion.button>
-                    <motion.button
-                        onClick={() => handleDelete('service', service.id)}
-                        className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition duration-150 ease-in-out ml-2"
-                        title="Delete Service"
-                        aria-label={`Delete service ${service.name}`}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </motion.button>
-                </td>
-            </tr>
-        )),
-        customerServices: filteredCustomerServices.map(cs => {
-            const customer = customers.find(c => c.id === cs.customerId);
-            const service = services.find(s => s.id === cs.serviceId);
-            return (
+        rooms: roomsLoading ? (
+            <tr><td colSpan="5" className="text-center py-4 text-gray-500 dark:text-gray-400">Loading rooms...</td></tr>
+        ) : roomsError ? (
+            <tr><td colSpan="5" className="text-center py-4 text-red-500">Error: {roomsError}</td></tr>
+        ) : filteredRooms.length === 0 ? (
+            <tr><td colSpan="5" className="text-center py-4 text-gray-500 dark:text-gray-400">No rooms found.</td></tr>
+        ) : (
+            filteredRooms.map(room => (
+                <tr key={room.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{room.number}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{room.type}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2.5 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(room.status)}`}>
+                            {room.status}
+                        </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">${room.price}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <motion.button
+                            onClick={() => openModal('room', room)}
+                            className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-150 ease-in-out"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            aria-label={`Edit room ${room.number}`}
+                        >
+                            <Edit2 className="w-5 h-5" />
+                        </motion.button>
+                        <motion.button
+                            onClick={() => handleDelete('room', room.id)}
+                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition duration-150 ease-in-out ml-2"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            aria-label={`Delete room ${room.number}`}
+                        >
+                            <Trash2 className="w-5 h-5" />
+                        </motion.button>
+                    </td>
+                </tr>
+            ))
+        ),
+        reservations: reservationLoading ? (
+            <tr><td colSpan="7" className="text-center py-4 text-gray-500 dark:text-gray-400">Loading reservations...</td></tr>
+        ) : reservationError ? (
+            <tr><td colSpan="7" className="text-center py-4 text-red-500">Error: {reservationError}</td></tr>
+        ) : filteredReservations.length === 0 ? (
+            <tr><td colSpan="7" className="text-center py-4 text-gray-500 dark:text-gray-400">No reservations found.</td></tr>
+        ) : (
+            filteredReservations.map(reservation => (
+                <tr key={reservation.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{reservation.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{reservation.roomNumber}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{reservation.customerName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{new Date(reservation.checkInDate).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{new Date(reservation.checkOutDate).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2.5 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(reservation.status)}`}>
+                            {reservation.status}
+                        </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <motion.button
+                            onClick={() => openModal('reservation', reservation)}
+                            className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-150 ease-in-out"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            aria-label={`Edit reservation ${reservation.id}`}
+                        >
+                            <Edit2 className="w-5 h-5" />
+                        </motion.button>
+                        <motion.button
+                            onClick={() => handleDelete('reservation', reservation.id)}
+                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition duration-150 ease-in-out ml-2"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            aria-label={`Delete reservation ${reservation.id}`}
+                        >
+                            <Trash2 className="w-5 h-5" />
+                        </motion.button>
+                    </td>
+                </tr>
+            ))
+        ),
+        // REMOVED: teachers: authLoading ? (
+        // REMOVED:    <tr><td colSpan="4" className="text-center py-4 text-gray-500 dark:text-gray-400">Loading teachers...</td></tr>
+        // REMOVED: ) : authError ? (
+        // REMOVED:    <tr><td colSpan="4" className="text-center py-4 text-red-500">Error: {authError}</td></tr>
+        // REMOVED: ) : filteredTeachers.length === 0 ? (
+        // REMOVED:    <tr><td colSpan="4" className="text-center py-4 text-gray-500 dark:text-gray-400">No teachers found.</td></tr>
+        // REMOVED: ) : (
+        // REMOVED:    filteredTeachers.map(teacher => (
+        // REMOVED:        <tr key={teacher.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
+        // REMOVED:            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{teacher.name}</td>
+        // REMOVED:            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{teacher.email}</td>
+        // REMOVED:            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{teacher.role}</td>
+        // REMOVED:            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+        // REMOVED:                {/* No edit/delete actions for teachers in userSlice, so these are omitted */}
+        // REMOVED:                <span className="text-gray-500 dark:text-gray-400">N/A</span>
+        // REMOVED:            </td>
+        // REMOVED:        </tr>
+        // REMOVED:    ))
+        // REMOVED: ),
+        customers: filteredCustomers.length === 0 ? (
+            <tr><td colSpan="5" className="text-center py-4 text-gray-500 dark:text-gray-400">No customer data available via API.</td></tr>
+        ) : (
+            filteredCustomers.map(customer => (
+                <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{customer.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{customer.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{customer.phone}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{customer.room}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <motion.button
+                            onClick={() => openModal('customer', customer)}
+                            className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-150 ease-in-out"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            aria-label={`Edit customer ${customer.name}`}
+                        >
+                            <Edit2 className="w-5 h-5" />
+                        </motion.button>
+                        <motion.button
+                            onClick={() => handleDelete('customer', customer.id)}
+                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition duration-150 ease-in-out ml-2"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            aria-label={`Delete customer ${customer.name}`}
+                        >
+                            <Trash2 className="w-5 h-5" />
+                        </motion.button>
+                    </td>
+                </tr>
+            ))
+        ),
+        services: filteredServices.length === 0 ? (
+            <tr><td colSpan="4" className="text-center py-4 text-gray-500 dark:text-gray-400">No service data available via API.</td></tr>
+        ) : (
+            filteredServices.map(service => (
+                <tr key={service.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{service.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{service.category}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">${service.price}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <motion.button
+                            onClick={() => openModal('service', service)}
+                            className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-150 ease-in-out"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            aria-label={`Edit service ${service.name}`}
+                        >
+                            <Edit2 className="w-5 h-5" />
+                        </motion.button>
+                        <motion.button
+                            onClick={() => handleDelete('service', service.id)}
+                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition duration-150 ease-in-out ml-2"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            aria-label={`Delete service ${service.name}`}
+                        >
+                            <Trash2 className="w-5 h-5" />
+                        </motion.button>
+                    </td>
+                </tr>
+            ))
+        ),
+        customerServices: filteredCustomerServices.length === 0 ? (
+            <tr><td colSpan="4" className="text-center py-4 text-gray-500 dark:text-gray-400">No customer service data available via API.</td></tr>
+        ) : (
+            filteredCustomerServices.map(cs => (
                 <tr key={cs.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{customer ? customer.name : 'Unknown Customer'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{service ? service.name : 'Unknown Service'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{cs.customerName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{cs.serviceName}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{cs.quantity}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <motion.button
                             onClick={() => handleDelete('customerService', cs.id)}
-                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition duration-150 ease-in-out ml-2"
-                            title="Delete Customer Service"
-                            aria-label={`Delete service for ${customer ? customer.name : 'Unknown Customer'}`}
+                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition duration-150 ease-in-out ml-2"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
+                            aria-label={`Delete customer service assignment for ${cs.customerName}`}
                         >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-5 h-5" />
                         </motion.button>
                     </td>
                 </tr>
-            );
-        })
+            ))
+        ),
     };
 
-    const currentData = {
-        rooms: filteredRooms,
-        customers: filteredCustomers,
-        services: filteredServices,
-        customerServices: filteredCustomerServices
-    };
 
-    const currentEmptyStateMessage = {
-        rooms: 'No rooms found. Add a new room to get started!',
-        customers: 'No customers registered. Add a new customer!',
-        services: 'No services found. Add a new service!',
-        customerServices: 'No services assigned to customers. Assign a service!'
-    };
+    const renderContent = () => {
+        const currentHeaders = tableHeaders[activeTab];
+        const currentRows = tableRows[activeTab];
 
-    const tabIcons = { // Define mapping for icons
-        rooms: BedDouble,
-        customers: Users,
-        services: Settings,
-        customerServices: ConciergeBell // New icon for customer services
+        return (
+            <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 mt-6 transition-colors duration-200">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white capitalize">{activeTab} Management</h3>
+                    <div className="flex space-x-3">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder={`Search ${activeTab}...`}
+                                className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition duration-150 ease-in-out"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            <Search className="w-5 h-5 text-gray-400 dark:text-gray-300 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                        </div>
+                        {activeTab === 'rooms' && (
+                            <motion.button
+                                onClick={() => openModal('room')}
+                                className="bg-blue-600 text-white p-2 rounded-full shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out flex items-center justify-center"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                aria-label="Add new room"
+                            >
+                                <Plus className="w-5 h-5" />
+                            </motion.button>
+                        )}
+                        {activeTab === 'reservations' && (
+                            <motion.button
+                                onClick={() => openModal('reservation')}
+                                className="bg-blue-600 text-white p-2 rounded-full shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out flex items-center justify-center"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                aria-label="Add new reservation"
+                            >
+                                <Plus className="w-5 h-5" />
+                            </motion.button>
+                        )}
+                        {activeTab === 'customers' && (
+                            <motion.button
+                                onClick={() => openModal('customer')}
+                                className="bg-blue-600 text-white p-2 rounded-full shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out flex items-center justify-center"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                aria-label="Add new customer"
+                            >
+                                <Plus className="w-5 h-5" />
+                            </motion.button>
+                        )}
+                        {activeTab === 'services' && (
+                            <motion.button
+                                onClick={() => openModal('service')}
+                                className="bg-blue-600 text-white p-2 rounded-full shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out flex items-center justify-center"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                aria-label="Add new service"
+                            >
+                                <Plus className="w-5 h-5" />
+                            </motion.button>
+                        )}
+                        {activeTab === 'customerServices' && (
+                            <motion.button
+                                onClick={() => openModal('assignService')}
+                                className="bg-blue-600 text-white p-2 rounded-full shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out flex items-center justify-center"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                aria-label="Assign new service to customer"
+                            >
+                                <Plus className="w-5 h-5" />
+                            </motion.button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            {currentHeaders.map((header, index) => (
+                                <th
+                                    key={index}
+                                    scope="col"
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                                >
+                                    {header}
+                                </th>
+                            ))}
+                        </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                        {currentRows}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 font-sans antialiased text-gray-900 dark:text-white transition-colors duration-300">
-            {/* Header */}
-            <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-start items-center py-4"> {/* Changed flex-direction for header content */}
-                        {/* Removed h1 element */}
-                    </div>
+        <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} transition-colors duration-200 p-6 font-sans`}>
+            <header className="flex justify-between items-center py-4 px-6 bg-white dark:bg-gray-800 shadow-md rounded-xl">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Panel</h1>
+                <div className="flex items-center space-x-4">
+                    <motion.button
+                        onClick={toggleDarkMode}
+                        className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                    >
+                        {isDarkMode ? <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-moon"><path d="M12 3a6 6 0 0 0 9 9 9 0 1 1-9-9Z"/></svg>}
+                    </motion.button>
+                    <span className="font-medium">Welcome, Admin!</span>
                 </div>
             </header>
 
-            {/* Navigation Tabs */}
-            <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex space-x-8 overflow-x-auto scrollbar-hide items-center"> {/* Added overflow-x-auto for mobile and items-center for vertical alignment */}
-                        {[
-                            { id: 'rooms', label: 'Room Management', icon: BedDouble },
-                            { id: 'customers', label: 'Customer Registration', icon: Users },
-                            { id: 'services', label: 'Services', icon: Settings },
-                            { id: 'customerServices', label: 'Customer Services', icon: ConciergeBell } // New tab
-                        ].map(({ id, label, icon: IconComponent }) => ( // Destructure icon as IconComponent
+            <main className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
+                <nav className="md:col-span-1 bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 transition-colors duration-200 h-fit">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Navigation</h2>
+                    <ul>
+                        <li>
                             <motion.button
-                                key={id}
-                                onClick={() => setActiveTab(id)}
-                                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 whitespace-nowrap
-                                    ${activeTab === id
-                                    ? 'border-blue-600 text-blue-700 dark:text-blue-400'
-                                    : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
-                                }`}
-                                whileHover={{ y: -2 }}
-                                whileTap={{ scale: 0.98 }}
-                                aria-controls={`${id}-panel`}
-                                role="tab"
-                                aria-selected={activeTab === id}
-                                id={`${id}-tab`}
+                                onClick={() => setActiveTab('rooms')}
+                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'rooms' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+                                whileHover={{ x: 5 }}
                             >
-                                <IconComponent className="w-4 h-4" /> {/* Use IconComponent */}
-                                <span>{label}</span>
+                                <BedDouble className="w-5 h-5 mr-3" /> Room Management
                             </motion.button>
-                        ))}
-                        {/* Search Bar moved here */}
-                        <div className="relative ml-auto flex-shrink-0"> {/* ml-auto to push to right, flex-shrink-0 to prevent shrinking */}
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm transition duration-150 ease-in-out"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                aria-label="Search items"
-                            />
-                        </div>
-                    </div>
+                        </li>
+                        <li className="mt-2">
+                            <motion.button
+                                onClick={() => setActiveTab('reservations')}
+                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'reservations' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+                                whileHover={{ x: 5 }}
+                            >
+                                <ConciergeBell className="w-5 h-5 mr-3" /> Reservation Management
+                            </motion.button>
+                        </li>
+                        <li className="mt-2">
+                            <motion.button
+                                onClick={() => setActiveTab('customers')}
+                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'customers' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+                                whileHover={{ x: 5 }}
+                            >
+                                <Users className="w-5 h-5 mr-3" /> Customer Management
+                            </motion.button>
+                        </li>
+                        <li className="mt-2">
+                            <motion.button
+                                onClick={() => setActiveTab('services')}
+                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'services' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+                                whileHover={{ x: 5 }}
+                            >
+                                <Settings className="w-5 h-5 mr-3" /> Service Management
+                            </motion.button>
+                        </li>
+                        <li className="mt-2">
+                            <motion.button
+                                onClick={() => setActiveTab('customerServices')}
+                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'customerServices' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+                                whileHover={{ x: 5 }}
+                            >
+                                <Filter className="w-5 h-5 mr-3" /> Customer Services
+                            </motion.button>
+                        </li>
+                        {/* REMOVED: Teachers List navigation item */}
+                        {/*
+                        <li className="mt-2">
+                            <motion.button
+                                onClick={() => setActiveTab('teachers')}
+                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'teachers' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+                                whileHover={{ x: 5 }}
+                            >
+                                <Users className="w-5 h-5 mr-3" /> Teachers List
+                            </motion.button>
+                        </li>
+                        */}
+                    </ul>
+                </nav>
+
+                <div className="md:col-span-3">
+                    {renderContent()}
                 </div>
-            </nav>
-
-            {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" role="tablist">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={activeTab}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.2 }}
-                        role="tabpanel"
-                        id={`${activeTab}-panel`}
-                        aria-labelledby={`${activeTab}-tab`}
-                    >
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                            <h2 className="text-2xl font-bold text-gray-800 dark:text-white capitalize">
-                                {activeTab.replace(/([A-Z])/g, ' $1').trim()} Management
-                            </h2>
-                            {activeTab !== 'customerServices' ? (
-                                <motion.button
-                                    onClick={() => openModal(activeTab.slice(0, -1))}
-                                    className="bg-blue-600 text-white px-5 py-2.5 rounded-lg flex items-center space-x-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition duration-150 ease-in-out shadow-md"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    aria-label={`Add new ${activeTab.slice(0, -1)}`}
-                                >
-                                    <Plus className="w-5 h-5" />
-                                    <span>Add {activeTab.slice(0, -1).charAt(0).toUpperCase() + activeTab.slice(0, -1).slice(1)}</span>
-                                </motion.button>
-                            ) : (
-                                <motion.button
-                                    onClick={() => openModal('assignService')}
-                                    className="bg-blue-600 text-white px-5 py-2.5 rounded-lg flex items-center space-x-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition duration-150 ease-in-out shadow-md"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    aria-label="Assign new service to customer"
-                                >
-                                    <Plus className="w-5 h-5" />
-                                    <span>Assign Service</span>
-                                </motion.button>
-                            )}
-                        </div>
-
-                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-                            <div className="overflow-x-auto"> {/* Enable horizontal scrolling for tables on small screens */}
-                                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                    <thead className="bg-gray-50 dark:bg-gray-700">
-                                    <tr>
-                                        {tableHeaders[activeTab].map((header, index) => (
-                                            <th
-                                                key={index}
-                                                scope="col"
-                                                className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
-                                            >
-                                                {header}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                    </thead>
-                                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                    {currentData[activeTab].length > 0 ? (
-                                        tableRows[activeTab]
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={tableHeaders[activeTab].length} className="px-6 py-10 text-center text-gray-500 dark:text-gray-400 text-lg">
-                                                {currentEmptyStateMessage[activeTab]}
-                                            </td>
-                                        </tr>
-                                    )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </motion.div>
-                </AnimatePresence>
             </main>
 
-            {/* Modal */}
             <AnimatePresence>
                 {showModal && (
-                    <Modal
-                        title={`${modalType === 'assignService' ? 'Assign Service' : (editingItem ? 'Edit' : 'Add')} ${modalType === 'assignService' ? '' : (modalType.charAt(0).toUpperCase() + modalType.slice(1))}`}
-                        onClose={closeModal}
+                    <Modal title={modalType === 'room' ? (editingItem ? 'Edit Room' : 'Add New Room') :
+                        modalType === 'customer' ? (editingItem ? 'Edit Customer' : 'Add New Customer') :
+                            modalType === 'service' ? (editingItem ? 'Edit Service' : 'Add New Service') :
+                                modalType === 'assignService' ? 'Assign Service to Customer' :
+                                    modalType === 'reservation' ? (editingItem ? 'Edit Reservation' : 'Add New Reservation') : ''}
+                           onClose={closeModal}
                     >
                         {modalType === 'room' && (
                             <RoomForm
-                                item={editingItem}
+                                item={currentRoom}
+                                onSubmit={handleSubmit}
+                                onCancel={closeModal}
+                            />
+                        )}
+                        {modalType === 'reservation' && (
+                            // You would create a ReservationForm component similarly to RoomForm
+                            // Using RoomForm as a placeholder, replace with a proper ReservationForm
+                            <RoomForm
+                                item={currentReservation}
                                 onSubmit={(data) => handleSubmit(data, modalType)}
                                 onCancel={closeModal}
                             />
@@ -827,21 +958,21 @@ const AdminDashboard = () => {
                         {modalType === 'customer' && (
                             <CustomerForm
                                 item={editingItem}
-                                onSubmit={(data) => handleSubmit(data, modalType)}
+                                onSubmit={handleSubmit}
                                 onCancel={closeModal}
                             />
                         )}
                         {modalType === 'service' && (
                             <ServiceForm
                                 item={editingItem}
-                                onSubmit={(data) => handleSubmit(data, modalType)}
+                                onSubmit={handleSubmit}
                                 onCancel={closeModal}
                             />
                         )}
                         {modalType === 'assignService' && (
                             <CustomerServiceForm
-                                customers={customers}
-                                services={services}
+                                customers={mockCustomers} // Still uses mock data
+                                services={mockServices}   // Still uses mock data
                                 onSubmit={handleAddCustomerService}
                                 onCancel={closeModal}
                             />

@@ -13,40 +13,17 @@ import NotFound from "../pages/NotFound/NotFound.jsx";
 import { UserProvider } from "../context/UserContext.jsx";
 import DetailPage from "../pages/Detail/DetailPage.jsx";
 
-
-const RootWrapper = ({ children }) => (
-  <UserProvider>{children}</UserProvider>
-);
-
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <RootWrapper><Layout /></RootWrapper>,
+    element: <Layout />,
     children: [
-      { path: "/", Component: Home },
+      { path: "/", element: <Home /> },
     ],
   },
   {
     path: "/admin",
-    element: (
-      <RootWrapper>
-        <AdminLayout />
-      </RootWrapper>
-    ),
-    children: [
-      {
-        index: true,
-        element: <Admin />,
-      },
-    ],
-  },
-    {
-    path: "/detail/:id",
-    element: (
-      <RootWrapper>
-        <DetailPage />
-      </RootWrapper>
-    ),
+    element: <AdminLayout />,
     children: [
       {
         index: true,
@@ -55,12 +32,12 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    path: "/detail/:id",
+    element: <DetailPage />,
+  },
+  {
     path: "/user",
-    element: (
-      <RootWrapper>
-        <UserLayout />
-      </RootWrapper>
-    ),
+    element: <UserLayout />,
     children: [
       {
         index: true,
@@ -70,18 +47,18 @@ export const router = createBrowserRouter([
   },
   {
     path: "/register",
-    element: <RootWrapper><RegistorLayout /></RootWrapper>,
+    element: <RegistorLayout />,
     children: [
-      { path: "signup", Component: RegisterForm },
+      { path: "signup", element: <RegisterForm /> },
       { path: "login", element: <LoginForm /> },
     ],
   },
   {
     path: "/login",
-    element: <RootWrapper><LoginForm /></RootWrapper>,
+    element: <LoginForm />,
   },
   {
     path: "*",
-    element: <RootWrapper><NotFound /></RootWrapper>,
-  }
+    element: <NotFound />,
+  },
 ]);
