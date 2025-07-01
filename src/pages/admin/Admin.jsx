@@ -1,6 +1,6 @@
 import React, { useState, createContext, useContext, useEffect, useRef } from 'react';
-import { Plus, Edit2, Trash2, Users, BedDouble, Settings, Search, Filter, Sun, Moon, UploadCloud, X } from 'lucide-react';
-import {  AnimatePresence } from 'framer-motion';
+import { Plus, Edit2, Trash2, Users, BedDouble, Settings, Search, Filter, ConciergeBell } from 'lucide-react'; // Removed Sun and Moon
+import { AnimatePresence, motion } from 'framer-motion'; // Import motion
 
 // --- Context for Theme and Data (Simplified "Slice" Concept) ---
 const AdminContext = createContext();
@@ -21,6 +21,7 @@ const AdminProvider = ({ children }) => {
         { id: 2, name: 'Laundry', price: 15, category: 'Housekeeping' },
         { id: 3, name: 'Spa Treatment', price: 120, category: 'Wellness' },
     ]);
+    const [customerServices, setCustomerServices] = useState([]); // New state for customer-service associations
 
     // Persist dark mode preference
     useEffect(() => {
@@ -79,11 +80,20 @@ const AdminProvider = ({ children }) => {
         }
     };
 
+    const addCustomerService = (customerId, serviceId, quantity = 1) => {
+        setCustomerServices(prev => [...prev, { id: Date.now(), customerId, serviceId, quantity }]);
+    };
+
+    const deleteCustomerService = (id) => {
+        setCustomerServices(prev => prev.filter(cs => cs.id !== id));
+    };
+
     return (
         <AdminContext.Provider value={{
             isDarkMode, toggleDarkMode,
-            rooms, customers, services,
-            addOrUpdateItem, deleteItem
+            rooms, customers, services, customerServices,
+            addOrUpdateItem, deleteItem,
+            addCustomerService, deleteCustomerService
         }}>
             {children}
         </AdminContext.Provider>
@@ -183,16 +193,11 @@ const RoomForm = ({ item, onSubmit, onCancel }) => {
         type: item?.type || 'Single',
         status: item?.status || 'Available',
         price: item?.price || '',
-        images: item?.images || []
     });
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleImageUpload = (newImages) => {
-        setFormData(prev => ({ ...prev, images: newImages }));
     };
 
     const handleSubmit = (e) => {
@@ -237,14 +242,6 @@ const RoomForm = ({ item, onSubmit, onCancel }) => {
                 required
             />
             <FormField label="Price per Night ($)" name="price" value={formData.price} onChange={handleInputChange} type="number" required />
-
-            <FileUploadDropzone
-                label="Room Images"
-                files={formData.images}
-                onFilesChange={handleImageUpload}
-                maxFiles={5}
-                allowedTypes={['image/jpeg', 'image/png', 'image/gif']}
-            />
 
             <div className="flex gap-2 mt-6">
                 <motion.button
@@ -383,135 +380,83 @@ const ServiceForm = ({ item, onSubmit, onCancel }) => {
     );
 };
 
-const FileUploadDropzone = ({ label, files, onFilesChange, maxFiles = 1, allowedTypes = ['image/*'] }) => {
-    const [isDragOver, setIsDragOver] = useState(false);
-    const fileInputRef = useRef(null);
+const CustomerServiceForm = ({ onSubmit, onCancel, customers, services }) => {
+    const [formData, setFormData] = useState({
+        customerId: '',
+        serviceId: '',
+        quantity: 1
+    });
 
-    const handleDragOver = (e) => {
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = (e) => {
         e.preventDefault();
-        setIsDragOver(true);
-    };
-
-    const handleDragLeave = () => {
-        setIsDragOver(false);
-    };
-
-    const handleDrop = (e) => {
-        e.preventDefault();
-        setIsDragOver(false);
-        const droppedFiles = Array.from(e.dataTransfer.files);
-        processFiles(droppedFiles);
-    };
-
-    const handleFileChange = (e) => {
-        const selectedFiles = Array.from(e.target.files);
-        processFiles(selectedFiles);
-    };
-
-    const processFiles = (newFiles) => {
-        const validFiles = newFiles.filter(file =>
-            allowedTypes.some(type => file.type.startsWith(type.replace('*', ''))) &&
-            files.length < maxFiles // Check against current files array length
-        ).map(file => ({
-            file,
-            preview: URL.createObjectURL(file),
-            name: file.name,
-            size: file.size,
-            type: file.type
-        }));
-
-        if (validFiles.length > 0) {
-            onFilesChange([...files, ...validFiles].slice(0, maxFiles));
+        if (formData.customerId && formData.serviceId) {
+            onSubmit(formData.customerId, formData.serviceId, Number(formData.quantity));
+        } else {
+            console.error("Please select a customer and a service.");
         }
     };
 
-    const removeFile = (indexToRemove) => {
-        onFilesChange(files.filter((_, index) => index !== indexToRemove));
-    };
-
-    useEffect(() => {
-        // Cleanup object URLs when component unmounts or files change
-        return () => {
-            files.forEach(file => URL.revokeObjectURL(file.preview));
-        };
-    }, [files]);
-
     return (
-        <div className="mb-6">
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">{label}</label>
-            <div
-                className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg cursor-pointer
-                    ${isDragOver ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700'}
-                    transition-colors duration-200 ease-in-out`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current.click()}
-                role="button"
-                tabIndex="0"
-                aria-label="Drag and drop files or click to upload"
-            >
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    className="hidden"
-                    multiple={maxFiles > 1}
-                    accept={allowedTypes.join(',')}
-                />
-                <UploadCloud className="w-8 h-8 text-gray-400 dark:text-gray-400 mb-2" />
-                <p className="text-sm text-gray-600 dark:text-gray-300 text-center">
-                    Drag & drop files here, or <span className="font-semibold text-blue-600 dark:text-blue-400">browse</span>
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Max {maxFiles} files. ({allowedTypes.map(type => type.split('/')[1]).join(', ').toUpperCase()})
-                </p>
+        <form onSubmit={handleSubmit}>
+            <FormField
+                label="Select Customer"
+                name="customerId"
+                value={formData.customerId}
+                onChange={handleInputChange}
+                type="select"
+                options={[{ value: '', label: 'Choose a customer' }, ...customers.map(c => ({ value: c.id, label: c.name }))]}
+                required
+            />
+            <FormField
+                label="Select Service"
+                name="serviceId"
+                value={formData.serviceId}
+                onChange={handleInputChange}
+                type="select"
+                options={[{ value: '', label: 'Choose a service' }, ...services.map(s => ({ value: s.id, label: s.name }))]}
+                required
+            />
+            <FormField
+                label="Quantity"
+                name="quantity"
+                type="number"
+                value={formData.quantity}
+                onChange={handleInputChange}
+                required
+            />
+            <div className="flex gap-2 mt-6">
+                <motion.button
+                    type="submit"
+                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-md"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                >
+                    Assign Service
+                </motion.button>
+                <motion.button
+                    type="button"
+                    onClick={onCancel}
+                    className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition duration-150 ease-in-out dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                >
+                    Cancel
+                </motion.button>
             </div>
-
-            {files.length > 0 && (
-                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {files.map((file, index) => (
-                        <motion.div
-                            key={index}
-                            className="relative group rounded-lg overflow-hidden shadow-sm border border-gray-200 dark:border-gray-600"
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            layout
-                        >
-                            {file.type.startsWith('image/') ? (
-                                <img src={file.preview} alt={file.name} className="w-full h-24 object-cover" />
-                            ) : (
-                                <div className="w-full h-24 flex items-center justify-center bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 text-xs text-center p-2">
-                                    {file.name}
-                                </div>
-                            )}
-                            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                <motion.button
-                                    onClick={() => removeFile(index)}
-                                    className="p-1.5 bg-red-600 text-white rounded-full hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                    aria-label={`Remove ${file.name}`}
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                >
-                                    <X className="w-4 h-4" />
-                                </motion.button>
-                            </div>
-                            <div className="p-2 text-xs text-gray-700 dark:text-gray-300 truncate">
-                                {file.name}
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
-            )}
-        </div>
+        </form>
     );
 };
+
 
 // --- Main Admin Dashboard Component ---
 
 const AdminDashboard = () => {
-    const { isDarkMode, toggleDarkMode, rooms, customers, services, addOrUpdateItem, deleteItem } = useContext(AdminContext);
+    const { isDarkMode, toggleDarkMode, rooms, customers, services, customerServices, addOrUpdateItem, deleteItem, addCustomerService, deleteCustomerService } = useContext(AdminContext);
 
     const [activeTab, setActiveTab] = useState('rooms');
     const [showModal, setShowModal] = useState(false);
@@ -535,10 +480,19 @@ const AdminDashboard = () => {
         closeModal();
     };
 
+    const handleAddCustomerService = (customerId, serviceId, quantity) => {
+        addCustomerService(customerId, serviceId, quantity);
+        closeModal();
+    };
+
     const handleDelete = (type, id) => {
         // In a real app, you'd show a confirmation dialog here
         if (window.confirm(`Are you sure you want to delete this ${type}?`)) {
-            deleteItem(type, id);
+            if (type === 'customerService') {
+                deleteCustomerService(id);
+            } else {
+                deleteItem(type, id);
+            }
         }
     };
 
@@ -560,7 +514,7 @@ const AdminDashboard = () => {
     const filteredCustomers = customers.filter(customer =>
         customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.room.toLowerCase().includes(searchTerm.toLowerCase())
+        (customer.room && customer.room.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     const filteredServices = services.filter(service =>
@@ -568,11 +522,20 @@ const AdminDashboard = () => {
         service.category.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const filteredCustomerServices = customerServices.filter(cs => {
+        const customer = customers.find(c => c.id === cs.customerId);
+        const service = services.find(s => s.id === cs.serviceId);
+        const customerName = customer ? customer.name.toLowerCase() : '';
+        const serviceName = service ? service.name.toLowerCase() : '';
+        return customerName.includes(searchTerm.toLowerCase()) || serviceName.includes(searchTerm.toLowerCase());
+    });
+
     // Dynamic content for tables
     const tableHeaders = {
         rooms: ['Room Number', 'Type', 'Status', 'Price/Night', 'Actions'],
         customers: ['Name', 'Email', 'Phone', 'Room', 'Actions'],
-        services: ['Service Name', 'Category', 'Price', 'Actions']
+        services: ['Service Name', 'Category', 'Price', 'Actions'],
+        customerServices: ['Customer', 'Service', 'Quantity', 'Actions']
     };
 
     const tableRows = {
@@ -668,19 +631,51 @@ const AdminDashboard = () => {
                     </motion.button>
                 </td>
             </tr>
-        ))
+        )),
+        customerServices: filteredCustomerServices.map(cs => {
+            const customer = customers.find(c => c.id === cs.customerId);
+            const service = services.find(s => s.id === cs.serviceId);
+            return (
+                <tr key={cs.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{customer ? customer.name : 'Unknown Customer'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{service ? service.name : 'Unknown Service'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{cs.quantity}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <motion.button
+                            onClick={() => handleDelete('customerService', cs.id)}
+                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition duration-150 ease-in-out ml-2"
+                            title="Delete Customer Service"
+                            aria-label={`Delete service for ${customer ? customer.name : 'Unknown Customer'}`}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </motion.button>
+                    </td>
+                </tr>
+            );
+        })
     };
 
     const currentData = {
         rooms: filteredRooms,
         customers: filteredCustomers,
-        services: filteredServices
+        services: filteredServices,
+        customerServices: filteredCustomerServices
     };
 
     const currentEmptyStateMessage = {
         rooms: 'No rooms found. Add a new room to get started!',
         customers: 'No customers registered. Add a new customer!',
-        services: 'No services found. Add a new service!'
+        services: 'No services found. Add a new service!',
+        customerServices: 'No services assigned to customers. Assign a service!'
+    };
+
+    const tabIcons = { // Define mapping for icons
+        rooms: BedDouble,
+        customers: Users,
+        services: Settings,
+        customerServices: ConciergeBell // New icon for customer services
     };
 
     return (
@@ -688,30 +683,8 @@ const AdminDashboard = () => {
             {/* Header */}
             <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-4">
-                        <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">Hotel Admin Dashboard</h1>
-                        <div className="flex items-center space-x-3">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                <input
-                                    type="text"
-                                    placeholder="Search..."
-                                    className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm transition duration-150 ease-in-out"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    aria-label="Search items"
-                                />
-                            </div>
-                            <motion.button
-                                onClick={toggleDarkMode}
-                                className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full transition duration-150 ease-in-out"
-                                aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                            >
-                                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                            </motion.button>
-                        </div>
+                    <div className="flex justify-start items-center py-4"> {/* Changed flex-direction for header content */}
+                        {/* Removed h1 element */}
                     </div>
                 </div>
             </header>
@@ -719,12 +692,13 @@ const AdminDashboard = () => {
             {/* Navigation Tabs */}
             <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex space-x-8 overflow-x-auto scrollbar-hide"> {/* Added overflow-x-auto for mobile */}
+                    <div className="flex space-x-8 overflow-x-auto scrollbar-hide items-center"> {/* Added overflow-x-auto for mobile and items-center for vertical alignment */}
                         {[
                             { id: 'rooms', label: 'Room Management', icon: BedDouble },
                             { id: 'customers', label: 'Customer Registration', icon: Users },
-                            { id: 'services', label: 'Services', icon: Settings }
-                        ].map(({ id, label }) => (
+                            { id: 'services', label: 'Services', icon: Settings },
+                            { id: 'customerServices', label: 'Customer Services', icon: ConciergeBell } // New tab
+                        ].map(({ id, label, icon: IconComponent }) => ( // Destructure icon as IconComponent
                             <motion.button
                                 key={id}
                                 onClick={() => setActiveTab(id)}
@@ -740,10 +714,22 @@ const AdminDashboard = () => {
                                 aria-selected={activeTab === id}
                                 id={`${id}-tab`}
                             >
-                                <Icon className="w-4 h-4" />
+                                <IconComponent className="w-4 h-4" /> {/* Use IconComponent */}
                                 <span>{label}</span>
                             </motion.button>
                         ))}
+                        {/* Search Bar moved here */}
+                        <div className="relative ml-auto flex-shrink-0"> {/* ml-auto to push to right, flex-shrink-0 to prevent shrinking */}
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm transition duration-150 ease-in-out"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                aria-label="Search items"
+                            />
+                        </div>
                     </div>
                 </div>
             </nav>
@@ -763,18 +749,31 @@ const AdminDashboard = () => {
                     >
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                             <h2 className="text-2xl font-bold text-gray-800 dark:text-white capitalize">
-                                {activeTab.replace('-', ' ')} Management
+                                {activeTab.replace(/([A-Z])/g, ' $1').trim()} Management
                             </h2>
-                            <motion.button
-                                onClick={() => openModal(activeTab.slice(0, -1))}
-                                className="bg-blue-600 text-white px-5 py-2.5 rounded-lg flex items-center space-x-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition duration-150 ease-in-out shadow-md"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                aria-label={`Add new ${activeTab.slice(0, -1)}`}
-                            >
-                                <Plus className="w-5 h-5" />
-                                <span>Add {activeTab.slice(0, -1).charAt(0).toUpperCase() + activeTab.slice(0, -1).slice(1)}</span>
-                            </motion.button>
+                            {activeTab !== 'customerServices' ? (
+                                <motion.button
+                                    onClick={() => openModal(activeTab.slice(0, -1))}
+                                    className="bg-blue-600 text-white px-5 py-2.5 rounded-lg flex items-center space-x-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition duration-150 ease-in-out shadow-md"
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    aria-label={`Add new ${activeTab.slice(0, -1)}`}
+                                >
+                                    <Plus className="w-5 h-5" />
+                                    <span>Add {activeTab.slice(0, -1).charAt(0).toUpperCase() + activeTab.slice(0, -1).slice(1)}</span>
+                                </motion.button>
+                            ) : (
+                                <motion.button
+                                    onClick={() => openModal('assignService')}
+                                    className="bg-blue-600 text-white px-5 py-2.5 rounded-lg flex items-center space-x-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition duration-150 ease-in-out shadow-md"
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    aria-label="Assign new service to customer"
+                                >
+                                    <Plus className="w-5 h-5" />
+                                    <span>Assign Service</span>
+                                </motion.button>
+                            )}
                         </div>
 
                         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
@@ -815,7 +814,7 @@ const AdminDashboard = () => {
             <AnimatePresence>
                 {showModal && (
                     <Modal
-                        title={`${editingItem ? 'Edit' : 'Add'} ${modalType.charAt(0).toUpperCase() + modalType.slice(1)}`}
+                        title={`${modalType === 'assignService' ? 'Assign Service' : (editingItem ? 'Edit' : 'Add')} ${modalType === 'assignService' ? '' : (modalType.charAt(0).toUpperCase() + modalType.slice(1))}`}
                         onClose={closeModal}
                     >
                         {modalType === 'room' && (
@@ -836,6 +835,14 @@ const AdminDashboard = () => {
                             <ServiceForm
                                 item={editingItem}
                                 onSubmit={(data) => handleSubmit(data, modalType)}
+                                onCancel={closeModal}
+                            />
+                        )}
+                        {modalType === 'assignService' && (
+                            <CustomerServiceForm
+                                customers={customers}
+                                services={services}
+                                onSubmit={handleAddCustomerService}
                                 onCancel={closeModal}
                             />
                         )}
