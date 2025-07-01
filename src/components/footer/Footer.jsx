@@ -4,11 +4,9 @@ import { Linkedin, Twitter, Facebook, Instagram, Youtube, ArrowUp } from 'lucide
 
 const Footer = () => {
   return (
-    <footer className="bg-black text-white px-8 py-12">
-      {/* Main Footer Content */}
+    <footer className="bg-black text-white px-8 py-12" >
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-12">
-          {/* Logo Section */}
           <div className="md:col-span-1">
             <div className="text-2xl font-serif italic mb-8">
               ROOMEASER
@@ -26,7 +24,6 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* News and Awards */}
           <div>
             <h3 className="text-sm font-semibold tracking-wider mb-4 text-gray-300">
               NEWS AND AWARDS
@@ -38,7 +35,6 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Terms & Conditions */}
           <div>
             <h3 className="text-sm font-semibold tracking-wider mb-4 text-gray-300">
               TERMS & CONDITIONS
