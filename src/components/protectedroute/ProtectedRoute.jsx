@@ -1,44 +1,26 @@
-// components/ProtectedRoute.jsx
+// src/components/protectedroute/ProtectedRoute.jsx
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { isAuthenticated, isAdmin, isUser, refreshAccessToken } from '../../utils/auth.js';
-import {getRefreshToken} from "../../utils/auth.js"; // Adjust path
+import { useUser } from '../../context/UserContext.jsx'; // Import the UserContext
 
 const ProtectedRoute = ({ allowedRoles }) => {
-    const authenticated = isAuthenticated();
-    const userIsAdmin = isAdmin();
-    const userIsUser = isUser();
+    const { user, loading } = useUser();
 
-    // Attempt to refresh token if access token is expired but refresh token exists
-    if (!authenticated && getRefreshToken()) {
-        refreshAccessToken().then(success => {
-            if (success) {
-                // If refresh was successful, re-evaluate authorization
-                window.location.reload(); // A simple way to re-trigger route evaluation
-            } else {
-                // If refresh failed, redirect to login
-                return <Navigate to="/register/login" replace />;
-            }
-        });
-        return null; // Don't render anything while refreshing
+    if (loading) {
+        return <div>Loading authentication...</div>; // Or a spinner
     }
 
-    if (!authenticated) {
-        return <Navigate to="/register/login" replace />;
+    if (!user.isAuthenticated) {
+        // Not authenticated, redirect to login page
+        return <Navigate to="/login" replace />;
     }
 
-    if (allowedRoles && allowedRoles.length > 0) {
-        const hasRequiredRole = allowedRoles.some(role => {
-            if (role === 'admin' && userIsAdmin) return true;
-            return !!(role === 'user' && userIsUser);
-        });
-
-        if (!hasRequiredRole) {
-            return <Navigate to="/" replace />;
-        }
+    if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+        // Authenticated but not authorized, redirect to unauthorized page or home
+        return <Navigate to="/" replace />; // Or a dedicated /unauthorized page
     }
 
-    return <Outlet />; // Render the child routes
+    return <Outlet />; // User is authenticated and authorized, render the child routes
 };
 
 export default ProtectedRoute;
