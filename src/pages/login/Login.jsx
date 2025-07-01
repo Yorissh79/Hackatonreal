@@ -42,8 +42,6 @@ const LoginForm = () => {
 
     try {
       const result = await dispatch(login(formData)).unwrap();
-      console.log("Login result:", result);
-
       if (result.role) {
         const role = result.role.toLowerCase();
         navigate(`/${role}`, { replace: true });
@@ -56,48 +54,76 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black p-6">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <form
         onSubmit={handleSubmit}
-        className="bg-gray-800 p-8 rounded-lg max-w-md w-full space-y-6"
+        className="bg-white shadow-md rounded-md p-8 max-w-md w-full"
+        noValidate
       >
-        <h1 className="text-white text-2xl text-center mb-4">Login</h1>
+        <h2 className="text-3xl font-semibold mb-6 text-center text-gray-800">
+          Login
+        </h2>
 
+        {/* Email */}
+        <label htmlFor="email" className="block text-gray-700 font-medium mb-1">
+          Email
+        </label>
         <input
           type="email"
           name="email"
-          placeholder="Email"
+          id="email"
+          placeholder="you@example.com"
           value={formData.email}
           onChange={handleChange}
-          className="w-full p-3 rounded bg-gray-700 text-white border border-gray-600"
+          className={`w-full px-4 py-2 mb-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            formErrors.email ? "border-red-500" : "border-gray-300"
+          }`}
+          autoComplete="email"
         />
-        {formErrors.email && <p className="text-red-500">{formErrors.email}</p>}
+        {formErrors.email && (
+          <p className="text-sm text-red-600 mb-2">{formErrors.email}</p>
+        )}
 
-        <div className="relative">
+        {/* Password */}
+        <label htmlFor="password" className="block text-gray-700 font-medium mb-1">
+          Password
+        </label>
+        <div className="relative mb-2">
           <input
             type={showPassword ? "text" : "password"}
             name="password"
-            placeholder="Password"
+            id="password"
+            placeholder="Enter your password"
             value={formData.password}
             onChange={handleChange}
-            className="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 pr-10"
+            className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              formErrors.password ? "border-red-500" : "border-gray-300"
+            }`}
+            autoComplete="current-password"
           />
           <button
             type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-3 text-gray-400"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute right-3 top-2 text-gray-600 hover:text-gray-900"
+            aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? "🙈" : "👁️"}
           </button>
         </div>
-        {formErrors.password && <p className="text-red-500">{formErrors.password}</p>}
+        {formErrors.password && (
+          <p className="text-sm text-red-600 mb-4">{formErrors.password}</p>
+        )}
 
-        {error && <p className="text-red-500 text-center">{error}</p>}
+        {/* Server error */}
+        {error && (
+          <p className="text-center text-red-600 font-medium mb-4">{error}</p>
+        )}
 
+        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded"
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-2 rounded-md font-semibold transition-colors"
         >
           {loading ? "Logging in..." : "Login"}
         </button>
