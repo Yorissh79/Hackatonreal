@@ -86,7 +86,7 @@ const Home = () => {
                                     className="w-full h-[540px] object-cover group-hover:scale-105 transition-transform duration-500"
                                 />
                             </div>
-                            <div className="flex flex-col items-start gap-7 mt-6">
+                            <div className="flex flex-col items-start gap-7 mt-7">
                                 <h1 className="text-2xl font-normal text-black dark:text-white">
                                     {card.title}
                                 </h1>
