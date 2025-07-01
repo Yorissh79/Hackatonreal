@@ -70,8 +70,6 @@ export const getAllTeachers = createAsyncThunk(
     }
 );
 
-
-
 // Send OTP
 export const sendOTP = createAsyncThunk(
     'auth/sendOTP',
@@ -85,7 +83,6 @@ export const sendOTP = createAsyncThunk(
     }
 );
 
-// ---------------------- Slice ----------------------
 
 const authSlice = createSlice({
     name: 'auth',
@@ -97,7 +94,6 @@ const authSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            // Signup
             .addCase(signup.pending, (state) => {
                 state.loading = true;
                 state.error = null;
