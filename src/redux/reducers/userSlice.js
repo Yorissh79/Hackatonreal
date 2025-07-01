@@ -19,6 +19,19 @@ const getErrorMessage = (error) => {
     return 'Unexpected error';
 };
 
+// Check current user (me endpoint)
+export const checkAuth = createAsyncThunk(
+    'Auth/checkAuth',
+    async (_, thunkAPI) => {
+        try {
+            const res = await axios.get(`${BASE_URL}/Auth/me`, { withCredentials: true });
+            return res.data;
+        } catch (err) {
+            return thunkAPI.rejectWithValue(getErrorMessage(err));
+        }
+    }
+);
+
 // Signup
 export const signup = createAsyncThunk(
     'Auth/signup',
@@ -94,6 +107,25 @@ const authSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
+            // Check Auth (me endpoint)
+            .addCase(checkAuth.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(checkAuth.fulfilled, (state, action) => {
+                state.loading = false;
+                state.user = action.payload;
+                state.isAuthenticated = true;
+                console.log('Auth check successful, user:', state.user); // Debug log
+            })
+            .addCase(checkAuth.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload ?? 'Auth check failed';
+                state.isAuthenticated = false;
+                state.user = null;
+            })
+
+            // Signup
             .addCase(signup.pending, (state) => {
                 state.loading = true;
                 state.error = null;
