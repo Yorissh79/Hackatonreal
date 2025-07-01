@@ -7,6 +7,7 @@ import Admin from "../pages/admin/Admin.jsx";
 import adminLayout from "../components/adminlayout/AdminLayout.jsx";
 import User from "../pages/user/User.jsx";
 import UserLayout from "../components/userlayout/UserLayout.jsx";
+import RegistorLayout from "../components/registerlayout/RegistorLayout.jsx";
 
 export const router = createBrowserRouter([
   {
@@ -16,15 +17,7 @@ export const router = createBrowserRouter([
       {
         path: "/",
         Component: Home,
-      },
-      {
-        path: "/register",
-        Component: RegisterForm,
-      },
-      {
-        path: "/login",
-        Component: LoginForm,
-      },
+      }
     ],
   },
   {
@@ -47,4 +40,18 @@ export const router = createBrowserRouter([
       },
     ],
   },
+  {
+    path: "/register",
+    Component: RegistorLayout,
+    children: [
+      {
+        path: "/register/signup",
+        Component: RegisterForm,
+      },
+      {
+        path: "/register/login",
+        Component: LoginForm,
+      },
+    ],
+  }
 ]);
