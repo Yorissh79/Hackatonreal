@@ -11,16 +11,20 @@ import RegistorLayout from "../components/registerlayout/RegistorLayout.jsx";
 import ProtectedRoute from "../components/protectedroute/ProtectedRoute.jsx";
 import NotFound from "../pages/NotFound/NotFound.jsx";
 import { UserProvider } from "../context/UserContext.jsx";
+import DetailPage from "../pages/Detail/DetailPage.jsx";
+
 
 const RootWrapper = ({ children }) => (
-    <UserProvider>{children}</UserProvider>
+  <UserProvider>{children}</UserProvider>
 );
 
 export const router = createBrowserRouter([
   {
     path: "/",
     element: <RootWrapper><Layout /></RootWrapper>,
-    children: [{ path: "/", Component: Home }],
+    children: [
+      { path: "/", Component: Home },
+    ],
   },
   {
     path: "/admin",
@@ -32,9 +36,21 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: (
-            <Admin />
-        ),
+        element: <Admin />,
+      },
+    ],
+  },
+    {
+    path: "/detail/:id",
+    element: (
+      <RootWrapper>
+        <DetailPage />
+      </RootWrapper>
+    ),
+    children: [
+      {
+        index: true,
+        element: <Admin />,
       },
     ],
   },
@@ -48,9 +64,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: (
-            <User />
-        ),
+        element: <User />,
       },
     ],
   },
