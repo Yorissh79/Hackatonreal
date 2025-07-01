@@ -1,3 +1,6 @@
+import React, { useState } from 'react';
+import { Plus, Edit2, Trash2, Users, BedDouble, Settings, Search, Filter } from 'lucide-react';
+
 const RoomForm = ({ item, onSubmit, onCancel }) => {
     const [formData, setFormData] = useState({
         number: item?.number || '',
@@ -241,8 +244,6 @@ const ServiceForm = ({ item, onSubmit, onCancel }) => {
         </>
     );
 };
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Users, BedDouble, Settings, Search, Filter } from 'lucide-react';
 
 const Admin = () => {
     const [activeTab, setActiveTab] = useState('rooms');
@@ -330,9 +331,27 @@ const Admin = () => {
                     {item ? 'Edit' : 'Add'} {type.charAt(0).toUpperCase() + type.slice(1)}
                 </h2>
                 <div>
-                    {type === 'room' && <RoomForm item={item} onSubmit={(data) => handleSubmit(data, type)} onCancel={closeModal} />}
-                    {type === 'customer' && <CustomerForm item={item} onSubmit={(data) => handleSubmit(data, type)} onCancel={closeModal} />}
-                    {type === 'service' && <ServiceForm item={item} onSubmit={(data) => handleSubmit(data, type)} onCancel={closeModal} />}
+                    {type === 'room' && (
+                        <RoomForm
+                            item={item}
+                            onSubmit={(data) => handleSubmit(data, type)}
+                            onCancel={closeModal}
+                        />
+                    )}
+                    {type === 'customer' && (
+                        <CustomerForm
+                            item={item}
+                            onSubmit={(data) => handleSubmit(data, type)}
+                            onCancel={closeModal}
+                        />
+                    )}
+                    {type === 'service' && (
+                        <ServiceForm
+                            item={item}
+                            onSubmit={(data) => handleSubmit(data, type)}
+                            onCancel={closeModal}
+                        />
+                    )}
                 </div>
             </div>
         </div>
@@ -370,7 +389,7 @@ const Admin = () => {
                             { id: 'rooms', label: 'Room Management', icon: BedDouble },
                             { id: 'customers', label: 'Customer Registration', icon: Users },
                             { id: 'services', label: 'Services', icon: Settings }
-                        ].map(({ id, label }) => (
+                        ].map(({ id, label, icon: Icon }) => (
                             <button
                                 key={id}
                                 onClick={() => setActiveTab(id)}
