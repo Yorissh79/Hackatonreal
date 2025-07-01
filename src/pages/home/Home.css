@@ -1,0 +1,106 @@
+#home-first{
+    width: 100%;
+    height: 95vh;
+    background-image: url(../../assets/_DSF3846-final.webp);
+    background-repeat: no-repeat;
+    background-size: cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+}
+.home-text{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+}
+.home-text h1{
+    color: white;
+    font-size: 45px;
+    font-weight: 400;
+}
+.home-text p{
+    color: white;
+    text-wrap: wrap;
+    width: 600px;
+    font-size: 26px;
+    font-weight: 400;
+    text-align: center;
+}
+/* ====================================== */
+
+#home-2{
+    width: 100%;
+    height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 30px 0;
+}
+.container-2{
+    display: flex;
+    flex-direction: column;
+    width: 80%;
+    height: 240px;
+
+}
+.container-2 h3{
+    font-size: 20px;
+    color: gray;
+}
+.container-2 h3 span{
+    font-weight: 600;
+    color: black;
+}
+
+.container-2 h1{
+    font-size: 30px;
+    text-align: center;
+    margin-top: 40px;
+}
+
+.container-2 p{
+    font-size: 20px;
+    text-align: center;
+    width: 1000px;
+    margin: 25px auto;
+}
+
+#home-3{
+    width: 100%;
+    display: flex;
+    align-items: center;
+    height: fit-content;
+    justify-content: center;
+
+}
+.container-3{
+    width: 80%;
+    height: 700px;
+    background-image: url(../../assets/OO_Palmilla_Secrets_Mariana_Covarrubias_Beach_Drone_4933_MASTER.jpg);
+    background-repeat: no-repeat;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: end;
+    gap: 25px;
+    padding-bottom: 60px;
+}
+.container-3 h1{
+    font-size: 30px;
+    color: white;
+}
+.container-3 p{
+    font-size: 20px;
+    width: 600px;
+    text-align: center;
+    color: white;
+}
+.container-3 button{
+    font-size: 20px;
+    width: 230px;
+    padding: 10px 0;
+    border: 2px solid white;
+    color: white;
+}
