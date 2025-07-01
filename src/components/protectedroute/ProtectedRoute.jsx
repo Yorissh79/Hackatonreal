@@ -1,4 +1,3 @@
-// ProtectedRoute.jsx
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useUser } from '../../context/UserContext.jsx';
@@ -6,7 +5,6 @@ import { useUser } from '../../context/UserContext.jsx';
 const ProtectedRoute = ({ allowedRoles = [] }) => {
     const { user, isAuthenticated, loading } = useUser();
 
-    // Show loading spinner while checking authentication
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -18,25 +16,28 @@ const ProtectedRoute = ({ allowedRoles = [] }) => {
         );
     }
 
-    // Redirect to login if not authenticated (using Context API only)
     if (!isAuthenticated()) {
-        console.log('User not authenticated, redirecting to login');
+        // İstifadəçi giriş etməyibsə login səhifəsinə yönləndir
         return <Navigate to="/login" replace />;
     }
 
-    // Check if user has required role
-    if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
-        console.log(`User role '${user?.role}' not allowed. Required: ${allowedRoles.join(', ')}`);
+    // İstifadəçi varsa, amma rol icazə verilənlərdə yoxdursa
+    if (allowedRoles.length > 0) {
+        // User rolunu kiçik hərflə alırıq, əgər user undefined-dirsə, boş string kimi götürürük
+        const userRole = (user?.role || '').toLowerCase();
 
-        // Redirect based on user's actual role
-        const redirectPath = user?.role === 'admin' ? '/admin' :
-            user?.role === 'user' ? '/user' : '/';
-        return <Navigate to={redirectPath} replace />;
+        if (!allowedRoles.includes(userRole)) {
+            // İstifadəçinin roluna görə uyğun səhifəyə yönləndir
+            const redirectPath =
+                userRole === 'admin' ? '/admin' :
+                userRole === 'user' ? '/user' :
+                '/';
+
+            return <Navigate to={redirectPath} replace />;
+        }
     }
 
-    console.log(`Access granted for role: ${user?.role}`);
-
-    // If all checks pass, render the protected component
+    // Əgər hər şey qaydasındadırsa, icazə verilən routu göstər
     return <Outlet />;
 };
 
