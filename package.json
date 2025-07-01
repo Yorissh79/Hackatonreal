@@ -10,12 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.1.11",
     "formik": "^2.4.6",
     "js-cookie": "^3.0.5",
+    "lucide-react": "^0.525.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.3",
+    "tailwindcss": "^4.1.11",
     "yup": "^1.6.1"
   },
   "devDependencies": {
@@ -33,7 +36,6 @@
     "react-router": "^7.5.3",
     "sass-embedded": "^1.87.0",
     "scss": "^0.2.4",
-    "tailwindcss": "^3.4.17",
     "vite": "^6.3.1"
   }
 }
