@@ -24,7 +24,7 @@ export const signup = createAsyncThunk(
     'Auth/signup',
     async (data, thunkAPI) => {
         try {
-            const res = await axios.post(`${BASE_URL}/auth/signup`, data, { withCredentials: true });
+            const res = await axios.post(`${BASE_URL}/Auth/register`, data, { withCredentials: true });
             return res.data;
         } catch (err) {
             return thunkAPI.rejectWithValue(getErrorMessage(err));
@@ -37,7 +37,8 @@ export const login = createAsyncThunk(
     'Auth/login',
     async (data, thunkAPI) => {
         try {
-            const res = await axios.post(`${BASE_URL}/auth/login`, data, { withCredentials: true });
+            const res = await axios.post(`${BASE_URL}/Auth/login`, data, { withCredentials: true });
+            console.log('Login response:', res.data); // Debug log
             return res.data;
         } catch (err) {
             return thunkAPI.rejectWithValue(getErrorMessage(err));
@@ -50,7 +51,7 @@ export const logout = createAsyncThunk(
     'Auth/logout',
     async (_, thunkAPI) => {
         try {
-            await axios.post(`${BASE_URL}/auth/logout`, {}, { withCredentials: true });
+            await axios.post(`${BASE_URL}/Auth/logout`, {}, { withCredentials: true });
         } catch (err) {
             return thunkAPI.rejectWithValue(getErrorMessage(err));
         }
@@ -59,7 +60,7 @@ export const logout = createAsyncThunk(
 
 // Get All Teachers
 export const getAllTeachers = createAsyncThunk(
-    'auth/getAllTeachers',
+    'Auth/getAllTeachers',
     async (_, thunkAPI) => {
         try {
             const res = await axios.get(`${BASE_URL}/teacher/all`, {withCredentials: true});
@@ -70,22 +71,18 @@ export const getAllTeachers = createAsyncThunk(
     }
 );
 
-
-
 // Send OTP
 export const sendOTP = createAsyncThunk(
-    'auth/sendOTP',
+    'Auth/sendOTP',
     async (email, thunkAPI) => {
         try {
-            const res = await axios.post(`${BASE_URL}/auth/send-otp`, { email });
+            const res = await axios.post(`${BASE_URL}/Auth/send-otp`, { email });
             return res.data;
         } catch (err) {
             return thunkAPI.rejectWithValue(getErrorMessage(err));
         }
     }
 );
-
-// ---------------------- Slice ----------------------
 
 const authSlice = createSlice({
     name: 'auth',
@@ -97,42 +94,55 @@ const authSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            // Signup
             .addCase(signup.pending, (state) => {
                 state.loading = true;
                 state.error = null;
             })
             .addCase(signup.fulfilled, (state, action) => {
                 state.loading = false;
-                state.user = action.payload.user;
+                // Check if response has nested user object or direct user data
+                state.user = action.payload.user || action.payload;
                 state.isAuthenticated = true;
+                console.log('Signup successful, user:', state.user); // Debug log
             })
             .addCase(signup.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload ?? 'Signup failed';
             })
 
-            // Login
+            // Login - FIXED
             .addCase(login.pending, (state) => {
                 state.loading = true;
                 state.error = null;
             })
             .addCase(login.fulfilled, (state, action) => {
                 state.loading = false;
-                state.user = action.payload.user;
+                // Since your backend returns user data directly, not nested under 'user'
+                // Backend response: {"$id":"1","name":"Admin","role":"Admin"}
+                state.user = action.payload;
                 state.isAuthenticated = true;
+                console.log('Login successful, user stored:', state.user); // Debug log
             })
             .addCase(login.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload ?? 'Login failed';
+                state.isAuthenticated = false;
+                state.user = null;
             })
 
             // Logout
+            .addCase(logout.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
             .addCase(logout.fulfilled, (state) => {
+                state.loading = false;
                 state.user = null;
                 state.isAuthenticated = false;
+                console.log('Logout successful'); // Debug log
             })
             .addCase(logout.rejected, (state, action) => {
+                state.loading = false;
                 state.error = action.payload ?? 'Logout failed';
             })
 
