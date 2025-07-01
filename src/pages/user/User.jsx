@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import UserDashboard from "../../components/userdashboard/UserDashboard";
 import UserHeader from "../../components/userheader/UserHeader"; // path'a göre düzelt
+import axios from "axios";
 
 const User = () => {
   const [activeTab, setActiveTab] = useState("booking");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);  
 
   const rooms = [
     { id: 1, number: 101, type: "double", status: "available", price: 120 },
