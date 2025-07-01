@@ -12,22 +12,16 @@ import ProtectedRoute from "../components/protectedroute/ProtectedRoute.jsx";
 import NotFound from "../pages/NotFound/NotFound.jsx";
 import { UserProvider } from "../context/UserContext.jsx";
 
-const RootWrapper = ({ children }) => (
-    <UserProvider>{children}</UserProvider>
-);
-
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <RootWrapper><Layout /></RootWrapper>,
+    element: <Layout />,
     children: [{ path: "/", Component: Home }],
   },
   {
     path: "/admin",
     element: (
-      <RootWrapper>
         <AdminLayout />
-      </RootWrapper>
     ),
     children: [
       {
@@ -41,9 +35,7 @@ export const router = createBrowserRouter([
   {
     path: "/user",
     element: (
-      <RootWrapper>
         <UserLayout />
-      </RootWrapper>
     ),
     children: [
       {
@@ -56,7 +48,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/register",
-    element: <RootWrapper><RegistorLayout /></RootWrapper>,
+    element: <RegistorLayout />,
     children: [
       { path: "signup", Component: RegisterForm },
       { path: "login", element: <LoginForm /> },
@@ -64,10 +56,10 @@ export const router = createBrowserRouter([
   },
   {
     path: "/login",
-    element: <RootWrapper><LoginForm /></RootWrapper>,
+    element: <LoginForm />,
   },
   {
     path: "*",
-    element: <RootWrapper><NotFound /></RootWrapper>,
+    element: <NotFound />,
   }
 ]);
