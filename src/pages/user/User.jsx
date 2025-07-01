@@ -14,75 +14,125 @@ const User = () => {
   };
 
   return (
-    <section className="rooms p-6 max-w-5xl mx-auto">
-      <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
-        Hotel Rooms
-      </h2>
-      <div className="overflow-x-auto rounded-lg border border-gray-300 shadow-sm">
-        <table className="min-w-full bg-white">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="text-left py-3 px-6 border-b border-gray-300">
-                Room Number
-              </th>
-              <th className="text-left py-3 px-6 border-b border-gray-300">
-                Type
-              </th>
-              <th className="text-left py-3 px-6 border-b border-gray-300">
-                Status
-              </th>
-              <th className="text-left py-3 px-6 border-b border-gray-300">
-                Price ($)
-              </th>
-              <th className="text-center py-3 px-6 border-b border-gray-300">
-                Action
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rooms.map((room) => (
-              <tr
-                key={room.id}
-                className="hover:bg-gray-50 transition-colors duration-200"
-              >
-                <td className="py-4 px-6 border-b border-gray-300 font-medium">
-                  {room.number}
-                </td>
-                <td className="py-4 px-6 border-b border-gray-300 capitalize">
-                  {room.type}
-                </td>
-                <td
-                  className={`py-4 px-6 border-b border-gray-300 capitalize font-semibold ${
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
+            Hotel Rooms
+          </h1>
+          <div className="w-24 h-1 bg-gradient-to-r from-gray-400 to-gray-600 mx-auto rounded-full"></div>
+          <p className="text-gray-400 mt-4 text-lg">
+            Discover comfort and luxury in our premium accommodations
+          </p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-gradient-to-r from-gray-800 to-gray-700 rounded-xl p-6 border border-gray-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm uppercase tracking-wide">
+                  Total Rooms
+                </p>
+                <p className="text-2xl font-bold text-white">{rooms.length}</p>
+              </div>
+              <div className="w-12 h-12 bg-gray-600 rounded-lg flex items-center justify-center">
+                <span className="text-white text-xl">🏨</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-green-800 to-green-700 rounded-xl p-6 border border-green-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-200 text-sm uppercase tracking-wide">
+                  Available
+                </p>
+                <p className="text-2xl font-bold text-white">
+                  {rooms.filter((room) => room.status === "available").length}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                <span className="text-white text-xl">✓</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-red-800 to-red-700 rounded-xl p-6 border border-red-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-red-200 text-sm uppercase tracking-wide">
+                  Occupied
+                </p>
+                <p className="text-2xl font-bold text-white">
+                  {rooms.filter((room) => room.status === "occupied").length}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center">
+                <span className="text-white text-xl">🚫</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Rooms Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {rooms.map((room) => (
+            <div
+              key={room.id}
+              className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-600 overflow-hidden hover:border-gray-500 transition-all duration-300 hover:transform hover:scale-105"
+            >
+              {/* Room Details */}
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-white">
+                    {room.type.charAt(0).toUpperCase() + room.type.slice(1)}{" "}
+                    Room
+                  </h3>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-white">
+                      ${room.price}
+                    </p>
+                    <p className="text-gray-400 text-sm">per night</p>
+                  </div>
+                </div>
+
+                {/* Room Features */}
+                <div className="flex items-center space-x-4 mb-6 text-gray-400 text-sm">
+                  <span className="flex items-center">
+                    <span className="mr-1">👥</span>
+                    {room.type === "double" ? "2 Guests" : "1 Guest"}
+                  </span>
+                  <span className="flex items-center">
+                    <span className="mr-1">🛏️</span>
+                    {room.type === "double" ? "King Bed" : "Single Bed"}
+                  </span>
+                </div>
+
+                {/* Action Button */}
+                <button
+                  onClick={() => handleBooking(room.number)}
+                  disabled={room.status !== "available"}
+                  className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-300 ${
                     room.status === "available"
-                      ? "text-green-600"
-                      : "text-red-600"
+                      ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transform hover:scale-105"
+                      : "bg-gray-700 text-gray-500 cursor-not-allowed"
                   }`}
                 >
-                  {room.status}
-                </td>
-                <td className="py-4 px-6 border-b border-gray-300">
-                  ${room.price}
-                </td>
-                <td className="py-4 px-6 border-b border-gray-300 text-center">
-                  <button
-                    onClick={() => handleBooking(room.number)}
-                    disabled={room.status !== "available"}
-                    className={`px-4 py-2 rounded-md font-medium transition 
-                      ${
-                        room.status === "available"
-                          ? "bg-blue-600 text-white hover:bg-blue-700"
-                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      }`}
-                  >
-                    Book Now
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  {room.status === "available" ? "Book Now" : "Not Available"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-12 text-gray-400">
+          <p>Need assistance? Contact our 24/7 concierge service</p>
+        </div>
       </div>
-    </section>
+    </div>
   );
 };
 
