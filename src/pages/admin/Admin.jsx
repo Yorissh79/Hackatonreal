@@ -1,11 +1,16 @@
 import React, { useState, createContext, useContext, useEffect, useRef } from 'react';
-import { Plus, Edit2, Trash2, Users, BedDouble, Settings, Search, Filter, ConciergeBell } from 'lucide-react'; // Removed Sun and Moon
-import { AnimatePresence, motion } from 'framer-motion'; // Import motion
+import { Plus, Edit2, Trash2, Users, BedDouble, Settings, Search, Filter, ConciergeBell, LogIn, LogOut, Sun, Moon } from 'lucide-react'; // Added LogIn, LogOut, Sun, Moon
+import { AnimatePresence, motion } from 'framer-motion';
+import { useSelector, useDispatch } from 'react-redux'; // Import useSelector and useDispatch
+import { checkAuth, login, logout } from '../../redux/reducers/userSlice.js'; // Assuming userSlice.js is in the same directory, adjust path if necessary
 
-// --- Context for Theme and Data (Simplified "Slice" Concept) ---
+// --- Context for Data (Simplified "Slice" Concept) ---
+// Keep AdminContext for data specific to this admin panel (rooms, customers, services)
+// Theme will be managed locally within AdminProvider or could be lifted to Redux if truly global
 const AdminContext = createContext();
 
 const AdminProvider = ({ children }) => {
+    // Keeping dark mode local as it's a UI preference and not directly related to userSlice data
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [rooms, setRooms] = useState([
         { id: 1, number: '101', type: 'Single', status: 'Available', price: 120, images: [] },
@@ -21,7 +26,7 @@ const AdminProvider = ({ children }) => {
         { id: 2, name: 'Laundry', price: 15, category: 'Housekeeping' },
         { id: 3, name: 'Spa Treatment', price: 120, category: 'Wellness' },
     ]);
-    const [customerServices, setCustomerServices] = useState([]); // New state for customer-service associations
+    const [customerServices, setCustomerServices] = useState([]);
 
     // Persist dark mode preference
     useEffect(() => {
@@ -110,7 +115,7 @@ const Modal = ({ children, title, onClose }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={onClose} // Close when clicking outside
+                onClick={onClose}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="modal-title"
@@ -121,7 +126,7 @@ const Modal = ({ children, title, onClose }) => {
                     animate={{ scale: 1, y: 0 }}
                     exit={{ scale: 0.9, y: 50 }}
                     transition={{ type: "spring", damping: 20, stiffness: 300 }}
-                    onClick={e => e.stopPropagation()} // Prevent modal from closing when clicking inside
+                    onClick={e => e.stopPropagation()}
                 >
                     <div className="flex justify-between items-center mb-6">
                         <h2 id="modal-title" className="text-2xl font-bold text-gray-800 dark:text-white">{title}</h2>
@@ -132,7 +137,8 @@ const Modal = ({ children, title, onClose }) => {
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                         >
-                            <X className="w-5 h-5" />
+                            {/* Assuming X icon is available from lucide-react, add it if not already imported */}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                         </motion.button>
                     </div>
                     {children}
@@ -201,13 +207,11 @@ const RoomForm = ({ item, onSubmit, onCancel }) => {
     };
 
     const handleSubmit = (e) => {
-        e.preventDefault(); // Prevent default form submission
+        e.preventDefault();
         if (formData.number && formData.type && formData.status && formData.price) {
             onSubmit(formData);
         } else {
-            // Basic client-side validation feedback
             console.error("Please fill all required fields.");
-            // In a real app, you'd show a user-friendly message
         }
     };
 
@@ -458,11 +462,36 @@ const CustomerServiceForm = ({ onSubmit, onCancel, customers, services }) => {
 const AdminDashboard = () => {
     const { isDarkMode, toggleDarkMode, rooms, customers, services, customerServices, addOrUpdateItem, deleteItem, addCustomerService, deleteCustomerService } = useContext(AdminContext);
 
+    const dispatch = useDispatch();
+    const { user, isAuthenticated, loading, error } = useSelector((state) => state.auth); // Assuming 'auth' is the slice name
+
     const [activeTab, setActiveTab] = useState('rooms');
     const [showModal, setShowModal] = useState(false);
     const [modalType, setModalType] = useState('');
     const [editingItem, setEditingItem] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showLoginModal, setShowLoginModal] = useState(false); // New state for login modal
+    const [loginFormData, setLoginFormData] = useState({ email: '', password: '' });
+
+    useEffect(() => {
+        dispatch(checkAuth());
+    }, [dispatch]);
+
+    const handleLoginChange = (e) => {
+        const { name, value } = e.target;
+        setLoginFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleLoginSubmit = (e) => {
+        e.preventDefault();
+        dispatch(login(loginFormData));
+        setShowLoginModal(false); // Close login modal after submission
+        setLoginFormData({ email: '', password: '' }); // Clear form
+    };
+
+    const handleLogout = () => {
+        dispatch(logout());
+    };
 
     const openModal = (type, item = null) => {
         setModalType(type);
@@ -486,7 +515,6 @@ const AdminDashboard = () => {
     };
 
     const handleDelete = (type, id) => {
-        // In a real app, you'd show a confirmation dialog here
         if (window.confirm(`Are you sure you want to delete this ${type}?`)) {
             if (type === 'customerService') {
                 deleteCustomerService(id);
@@ -671,11 +699,11 @@ const AdminDashboard = () => {
         customerServices: 'No services assigned to customers. Assign a service!'
     };
 
-    const tabIcons = { // Define mapping for icons
+    const tabIcons = {
         rooms: BedDouble,
         customers: Users,
         services: Settings,
-        customerServices: ConciergeBell // New icon for customer services
+        customerServices: ConciergeBell
     };
 
     return (
@@ -683,136 +711,193 @@ const AdminDashboard = () => {
             {/* Header */}
             <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-start items-center py-4"> {/* Changed flex-direction for header content */}
-                        {/* Removed h1 element */}
+                    <div className="flex justify-between items-center py-4"> {/* Changed flex-direction for header content */}
+                        <h1 className="text-xl font-bold text-gray-800 dark:text-white">Admin Dashboard</h1>
+                        <div className="flex items-center space-x-4">
+                            {loading && <span className="text-blue-500">Loading...</span>}
+                            {error && <span className="text-red-500">{error}</span>}
+                            {isAuthenticated ? (
+                                <>
+                                    <span className="text-gray-700 dark:text-gray-300">Welcome, {user?.name || user?.email || 'Admin'}!</span>
+                                    <motion.button
+                                        onClick={handleLogout}
+                                        className="bg-red-500 text-white px-3 py-1.5 rounded-md flex items-center space-x-1 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition duration-150 ease-in-out"
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        aria-label="Logout"
+                                    >
+                                        <LogOut className="w-4 h-4" />
+                                        <span>Logout</span>
+                                    </motion.button>
+                                </>
+                            ) : (
+                                <motion.button
+                                    onClick={() => setShowLoginModal(true)}
+                                    className="bg-blue-600 text-white px-3 py-1.5 rounded-md flex items-center space-x-1 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition duration-150 ease-in-out"
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    aria-label="Login"
+                                >
+                                    <LogIn className="w-4 h-4" />
+                                    <span>Login</span>
+                                </motion.button>
+                            )}
+                            <motion.button
+                                onClick={toggleDarkMode}
+                                className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+                                aria-label="Toggle dark mode"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                            >
+                                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                            </motion.button>
+                        </div>
                     </div>
                 </div>
             </header>
 
-            {/* Navigation Tabs */}
-            <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex space-x-8 overflow-x-auto scrollbar-hide items-center"> {/* Added overflow-x-auto for mobile and items-center for vertical alignment */}
-                        {[
-                            { id: 'rooms', label: 'Room Management', icon: BedDouble },
-                            { id: 'customers', label: 'Customer Registration', icon: Users },
-                            { id: 'services', label: 'Services', icon: Settings },
-                            { id: 'customerServices', label: 'Customer Services', icon: ConciergeBell } // New tab
-                        ].map(({ id, label, icon: IconComponent }) => ( // Destructure icon as IconComponent
-                            <motion.button
-                                key={id}
-                                onClick={() => setActiveTab(id)}
-                                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 whitespace-nowrap
-                                    ${activeTab === id
-                                    ? 'border-blue-600 text-blue-700 dark:text-blue-400'
-                                    : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
-                                }`}
-                                whileHover={{ y: -2 }}
-                                whileTap={{ scale: 0.98 }}
-                                aria-controls={`${id}-panel`}
-                                role="tab"
-                                aria-selected={activeTab === id}
-                                id={`${id}-tab`}
-                            >
-                                <IconComponent className="w-4 h-4" /> {/* Use IconComponent */}
-                                <span>{label}</span>
-                            </motion.button>
-                        ))}
-                        {/* Search Bar moved here */}
-                        <div className="relative ml-auto flex-shrink-0"> {/* ml-auto to push to right, flex-shrink-0 to prevent shrinking */}
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm transition duration-150 ease-in-out"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                aria-label="Search items"
-                            />
+            {/* Navigation Tabs (only visible if authenticated) */}
+            {isAuthenticated && (
+                <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex space-x-8 overflow-x-auto scrollbar-hide items-center">
+                            {[
+                                { id: 'rooms', label: 'Room Management', icon: BedDouble },
+                                { id: 'customers', label: 'Customer Registration', icon: Users },
+                                { id: 'services', label: 'Services', icon: Settings },
+                                { id: 'customerServices', label: 'Customer Services', icon: ConciergeBell }
+                            ].map(({ id, label, icon: IconComponent }) => (
+                                <motion.button
+                                    key={id}
+                                    onClick={() => setActiveTab(id)}
+                                    className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 whitespace-nowrap
+                                        ${activeTab === id
+                                        ? 'border-blue-600 text-blue-700 dark:text-blue-400'
+                                        : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
+                                    }`}
+                                    whileHover={{ y: -2 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    aria-controls={`${id}-panel`}
+                                    role="tab"
+                                    aria-selected={activeTab === id}
+                                    id={`${id}-tab`}
+                                >
+                                    <IconComponent className="w-4 h-4" />
+                                    <span>{label}</span>
+                                </motion.button>
+                            ))}
+                            <div className="relative ml-auto flex-shrink-0">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                <input
+                                    type="text"
+                                    placeholder="Search..."
+                                    className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm transition duration-150 ease-in-out"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    aria-label="Search items"
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
-            </nav>
+                </nav>
+            )}
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" role="tablist">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={activeTab}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.2 }}
-                        role="tabpanel"
-                        id={`${activeTab}-panel`}
-                        aria-labelledby={`${activeTab}-tab`}
-                    >
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                            <h2 className="text-2xl font-bold text-gray-800 dark:text-white capitalize">
-                                {activeTab.replace(/([A-Z])/g, ' $1').trim()} Management
-                            </h2>
-                            {activeTab !== 'customerServices' ? (
-                                <motion.button
-                                    onClick={() => openModal(activeTab.slice(0, -1))}
-                                    className="bg-blue-600 text-white px-5 py-2.5 rounded-lg flex items-center space-x-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition duration-150 ease-in-out shadow-md"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    aria-label={`Add new ${activeTab.slice(0, -1)}`}
-                                >
-                                    <Plus className="w-5 h-5" />
-                                    <span>Add {activeTab.slice(0, -1).charAt(0).toUpperCase() + activeTab.slice(0, -1).slice(1)}</span>
-                                </motion.button>
-                            ) : (
-                                <motion.button
-                                    onClick={() => openModal('assignService')}
-                                    className="bg-blue-600 text-white px-5 py-2.5 rounded-lg flex items-center space-x-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition duration-150 ease-in-out shadow-md"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    aria-label="Assign new service to customer"
-                                >
-                                    <Plus className="w-5 h-5" />
-                                    <span>Assign Service</span>
-                                </motion.button>
-                            )}
-                        </div>
-
-                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-                            <div className="overflow-x-auto"> {/* Enable horizontal scrolling for tables on small screens */}
-                                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                    <thead className="bg-gray-50 dark:bg-gray-700">
-                                    <tr>
-                                        {tableHeaders[activeTab].map((header, index) => (
-                                            <th
-                                                key={index}
-                                                scope="col"
-                                                className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
-                                            >
-                                                {header}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                    </thead>
-                                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                    {currentData[activeTab].length > 0 ? (
-                                        tableRows[activeTab]
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={tableHeaders[activeTab].length} className="px-6 py-10 text-center text-gray-500 dark:text-gray-400 text-lg">
-                                                {currentEmptyStateMessage[activeTab]}
-                                            </td>
-                                        </tr>
-                                    )}
-                                    </tbody>
-                                </table>
+                {!isAuthenticated ? (
+                    <div className="text-center py-20">
+                        <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-4">Please log in to access the dashboard.</h2>
+                        <p className="text-gray-600 dark:text-gray-400 mb-6">You need to be authenticated to manage hotel resources.</p>
+                        <motion.button
+                            onClick={() => setShowLoginModal(true)}
+                            className="bg-blue-600 text-white px-6 py-3 rounded-lg flex items-center justify-center mx-auto space-x-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition duration-150 ease-in-out shadow-md"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            aria-label="Open login form"
+                        >
+                            <LogIn className="w-5 h-5" />
+                            <span>Log In Now</span>
+                        </motion.button>
+                    </div>
+                ) : (
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.2 }}
+                            role="tabpanel"
+                            id={`${activeTab}-panel`}
+                            aria-labelledby={`${activeTab}-tab`}
+                        >
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                                <h2 className="text-2xl font-bold text-gray-800 dark:text-white capitalize">
+                                    {activeTab.replace(/([A-Z])/g, ' $1').trim()} Management
+                                </h2>
+                                {activeTab !== 'customerServices' ? (
+                                    <motion.button
+                                        onClick={() => openModal(activeTab.slice(0, -1))}
+                                        className="bg-blue-600 text-white px-5 py-2.5 rounded-lg flex items-center space-x-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition duration-150 ease-in-out shadow-md"
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        aria-label={`Add new ${activeTab.slice(0, -1)}`}
+                                    >
+                                        <Plus className="w-5 h-5" />
+                                        <span>Add {activeTab.slice(0, -1).charAt(0).toUpperCase() + activeTab.slice(0, -1).slice(1)}</span>
+                                    </motion.button>
+                                ) : (
+                                    <motion.button
+                                        onClick={() => openModal('assignService')}
+                                        className="bg-blue-600 text-white px-5 py-2.5 rounded-lg flex items-center space-x-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition duration-150 ease-in-out shadow-md"
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        aria-label="Assign new service to customer"
+                                    >
+                                        <Plus className="w-5 h-5" />
+                                        <span>Assign Service</span>
+                                    </motion.button>
+                                )}
                             </div>
-                        </div>
-                    </motion.div>
-                </AnimatePresence>
+
+                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                        <thead className="bg-gray-50 dark:bg-gray-700">
+                                        <tr>
+                                            {tableHeaders[activeTab].map((header, index) => (
+                                                <th
+                                                    key={index}
+                                                    scope="col"
+                                                    className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                                                >
+                                                    {header}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                        </thead>
+                                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                        {currentData[activeTab].length > 0 ? (
+                                            tableRows[activeTab]
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={tableHeaders[activeTab].length} className="px-6 py-10 text-center text-gray-500 dark:text-gray-400 text-lg">
+                                                    {currentEmptyStateMessage[activeTab]}
+                                                </td>
+                                            </tr>
+                                        )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </AnimatePresence>
+                )}
             </main>
 
-            {/* Modal */}
+            {/* Modals for Add/Edit/Assign */}
             <AnimatePresence>
-                {showModal && (
+                {showModal && isAuthenticated && ( // Only show if authenticated
                     <Modal
                         title={`${modalType === 'assignService' ? 'Assign Service' : (editingItem ? 'Edit' : 'Add')} ${modalType === 'assignService' ? '' : (modalType.charAt(0).toUpperCase() + modalType.slice(1))}`}
                         onClose={closeModal}
@@ -849,11 +934,59 @@ const AdminDashboard = () => {
                     </Modal>
                 )}
             </AnimatePresence>
+
+            {/* Login Modal */}
+            <AnimatePresence>
+                {showLoginModal && !isAuthenticated && (
+                    <Modal title="Login" onClose={() => setShowLoginModal(false)}>
+                        <form onSubmit={handleLoginSubmit}>
+                            <FormField
+                                label="Email"
+                                name="email"
+                                type="email"
+                                value={loginFormData.email}
+                                onChange={handleLoginChange}
+                                required
+                            />
+                            <FormField
+                                label="Password"
+                                name="password"
+                                type="password"
+                                value={loginFormData.password}
+                                onChange={handleLoginChange}
+                                required
+                            />
+                            <div className="flex gap-2 mt-6">
+                                <motion.button
+                                    type="submit"
+                                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-md"
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Logging In...' : 'Login'}
+                                </motion.button>
+                                <motion.button
+                                    type="button"
+                                    onClick={() => setShowLoginModal(false)}
+                                    className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition duration-150 ease-in-out dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                >
+                                    Cancel
+                                </motion.button>
+                            </div>
+                            {error && <p className="text-red-500 text-sm mt-4 text-center">{error}</p>}
+                        </form>
+                    </Modal>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
 
 // Main App component to wrap with context provider
+// This App component would typically be wrapped by Redux's Provider in your root index.js
 const App = () => {
     return (
         <AdminProvider>
