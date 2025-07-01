@@ -54,18 +54,24 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div
+      className="min-h-screen flex items-center justify-center bg-cover bg-center"
+      style={{
+        backgroundImage:
+          "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e')",
+      }}
+    >
       <form
         onSubmit={handleSubmit}
-        className="bg-white shadow-md rounded-md p-8 max-w-md w-full"
+        className="bg-white/30 backdrop-blur-md shadow-lg rounded-xl px-10 py-8 max-w-md w-full border border-white/40"
         noValidate
       >
-        <h2 className="text-3xl font-semibold mb-6 text-center text-gray-800">
-          Login
+        <h2 className="text-3xl font-bold text-white text-center mb-6 drop-shadow-md">
+          Welcome Back ☀️
         </h2>
 
         {/* Email */}
-        <label htmlFor="email" className="block text-gray-700 font-medium mb-1">
+        <label htmlFor="email" className="block text-white font-medium mb-1">
           Email
         </label>
         <input
@@ -75,17 +81,17 @@ const LoginForm = () => {
           placeholder="you@example.com"
           value={formData.email}
           onChange={handleChange}
-          className={`w-full px-4 py-2 mb-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            formErrors.email ? "border-red-500" : "border-gray-300"
+          className={`w-full px-4 py-2 mb-2 rounded-md focus:outline-none bg-white/60 text-gray-900 placeholder-gray-500 ${
+            formErrors.email ? "border border-red-500" : "border border-transparent"
           }`}
           autoComplete="email"
         />
         {formErrors.email && (
-          <p className="text-sm text-red-600 mb-2">{formErrors.email}</p>
+          <p className="text-sm text-red-200 mb-2">{formErrors.email}</p>
         )}
 
         {/* Password */}
-        <label htmlFor="password" className="block text-gray-700 font-medium mb-1">
+        <label htmlFor="password" className="block text-white font-medium mb-1">
           Password
         </label>
         <div className="relative mb-2">
@@ -96,37 +102,43 @@ const LoginForm = () => {
             placeholder="Enter your password"
             value={formData.password}
             onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              formErrors.password ? "border-red-500" : "border-gray-300"
+            className={`w-full px-4 py-2 rounded-md bg-white/60 text-gray-900 placeholder-gray-500 ${
+              formErrors.password
+                ? "border border-red-500"
+                : "border border-transparent"
             }`}
             autoComplete="current-password"
           />
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute right-3 top-2 text-gray-600 hover:text-gray-900"
+            className="absolute right-3 top-2 text-white"
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? "🙈" : "👁️"}
           </button>
         </div>
         {formErrors.password && (
-          <p className="text-sm text-red-600 mb-4">{formErrors.password}</p>
+          <p className="text-sm text-red-200 mb-4">{formErrors.password}</p>
         )}
 
         {/* Server error */}
         {error && (
-          <p className="text-center text-red-600 font-medium mb-4">{error}</p>
+          <p className="text-center text-red-100 font-medium mb-4">{error}</p>
         )}
 
         {/* Submit */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-2 rounded-md font-semibold transition-colors"
+          className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:bg-yellow-300 text-gray-900 py-2 rounded-md font-semibold transition-colors"
         >
           {loading ? "Logging in..." : "Login"}
         </button>
+
+        <p className="text-center text-white mt-6 italic text-sm drop-shadow-sm">
+          🏖️ Enjoy your beach holiday!
+        </p>
       </form>
     </div>
   );
