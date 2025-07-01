@@ -1,4 +1,4 @@
-// authUtils.js
+// auth.js - Client-side only authentication utilities
 import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
 
@@ -37,6 +37,10 @@ const isTokenNotExpired = (decodedToken) => {
     return decodedToken.exp > currentTime;
 };
 
+/**
+ * Client-side authentication check using only token validation
+ * No backend calls - relies entirely on JWT validation
+ */
 export const isAuthenticated = () => {
     const accessToken = getAccessToken();
     if (!accessToken) {
@@ -46,49 +50,62 @@ export const isAuthenticated = () => {
     return isTokenNotExpired(decodedToken);
 };
 
-// Functions like isAdmin and isUser will now be handled by the Context API.
-// They are removed from here.
-
-// You might also need a function to refresh tokens
-export const refreshAccessToken = async () => {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
-        console.warn('No refresh token found.');
-        return false;
+/**
+ * Get token expiration time
+ * @param {string} token - The JWT token
+ * @returns {Date | null} Expiration date or null if invalid
+ */
+export const getTokenExpiration = (token) => {
+    const decodedToken = decodeToken(token);
+    if (decodedToken && decodedToken.exp) {
+        return new Date(decodedToken.exp * 1000);
     }
-    try {
-        // Make an API call to your backend to get a new access token using the refresh token
-        // Adjust this API endpoint to your actual backend endpoint
-        const response = await fetch('/api/auth/refresh-token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ refreshToken }),
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            if (data.newAccessToken) {
-                // Set expiration as per your needs. Example: 1 hour (1/24 of a day).
-                // Or better, derive from the newAccessToken's expiry if your backend sends it.
-                Cookies.set('accessToken', data.newAccessToken, { expires: 1/24 });
-                return true;
-            } else {
-                console.error('Refresh token successful but no newAccessToken received.');
-                return false;
-            }
-        } else {
-            // Handle refresh token failure (e.g., redirect to login, clear tokens)
-            console.error('Failed to refresh token. Status:', response.status);
-            // Optionally, clear tokens if refresh fails to prevent infinite loops
-            Cookies.remove('accessToken');
-            Cookies.remove('refreshToken');
-            // Consider redirecting to login page here
-            return false;
-        }
-    } catch (error) {
-        console.error('Error refreshing token:', error);
-        return false;
-    }
+    return null;
 };
+
+/**
+ * Check if token will expire within given minutes
+ * @param {string} token - The JWT token
+ * @param {number} minutes - Minutes to check ahead
+ * @returns {boolean} True if token expires within the given time
+ */
+export const isTokenExpiringSoon = (token, minutes = 5) => {
+    const decodedToken = decodeToken(token);
+    if (!decodedToken || !decodedToken.exp) {
+        return true; // Consider invalid tokens as expiring
+    }
+
+    const expirationTime = decodedToken.exp * 1000;
+    const warningTime = Date.now() + (minutes * 60 * 1000);
+
+    return expirationTime <= warningTime;
+};
+
+/**
+ * Clear all authentication tokens
+ */
+export const clearTokens = () => {
+    Cookies.remove('accessToken');
+    Cookies.remove('refreshToken');
+};
+
+/**
+ * Set access token in cookie
+ * @param {string} token - The access token
+ * @param {number} expiresInHours - Hours until expiration (default: 1 hour)
+ */
+export const setAccessToken = (token, expiresInHours = 1) => {
+    Cookies.set('accessToken', token, { expires: expiresInHours / 24 });
+};
+
+/**
+ * Set refresh token in cookie
+ * @param {string} token - The refresh token
+ * @param {number} expiresInDays - Days until expiration (default: 7 days)
+ */
+export const setRefreshToken = (token, expiresInDays = 7) => {
+    Cookies.set('refreshToken', token, { expires: expiresInDays });
+};
+
+// Note: Refresh token functionality removed as requested
+// All authentication is now handled client-side through Context API
