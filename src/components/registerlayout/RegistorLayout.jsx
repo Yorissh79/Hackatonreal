@@ -6,9 +6,9 @@ import {Outlet} from "react-router";
 const RegistorLayout = () => {
     return (
         <>
-            <RegisterHeader/>
+            {/* <RegisterHeader/> */}
             <Outlet/>
-            <RegisterFooter/>
+            {/* <RegisterFooter/> */}
         </>
     )
 }

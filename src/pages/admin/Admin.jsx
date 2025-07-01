@@ -6,47 +6,8 @@ import { useSelector, useDispatch } from 'react-redux';
 // Import Redux Thunks and actions from your slices
 import { fetchRooms, addRoom, updateRoom, deleteRoom, fetchRoomById, clearCurrentRoom, clearRoomError } from '../../redux/reducers/roomSlice'; // Adjust path if necessary
 import { getReservationTable, createReservation, updateReservation, deleteReservation, getReservationById, clearCurrentReservation, resetReservationError } from '../../redux/reducers/reservationSlice'; // Adjust path if necessary
-// REMOVED: import { getAllTeachers, resetAuthError } from '../../redux/reducers/userSlice'; // Adjust path if necessary
+import { getAllTeachers, resetAuthError, checkAuth } from '../../redux/reducers/userSlice'; // Adjust path if necessary, added checkAuth
 
-// --- Context for Theme ---
-const AdminContext = createContext();
-
-const AdminProvider = ({ children }) => {
-    const [isDarkMode, setIsDarkMode] = useState(false);
-
-    // Persist dark mode preference
-    useEffect(() => {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark') {
-            setIsDarkMode(true);
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    }, []);
-
-    const toggleDarkMode = () => {
-        setIsDarkMode(prev => {
-            const newMode = !prev;
-            if (newMode) {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-            }
-            return newMode;
-        });
-    };
-
-    return (
-        <AdminContext.Provider value={{
-            isDarkMode, toggleDarkMode,
-        }}>
-            {children}
-        </AdminContext.Provider>
-    );
-};
 
 // --- Reusable Components ---
 
@@ -54,7 +15,7 @@ const Modal = ({ children, title, onClose }) => {
     return (
         <AnimatePresence>
             <motion.div
-                className="fixed inset-0 bg-black bg-opacity-60 dark:bg-opacity-80 flex items-center justify-center z-50 p-4"
+                className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -64,7 +25,7 @@ const Modal = ({ children, title, onClose }) => {
                 aria-labelledby="modal-title"
             >
                 <motion.div
-                    className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-md transform transition-all"
+                    className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md transform transition-all"
                     initial={{ scale: 0.9, y: 50 }}
                     animate={{ scale: 1, y: 0 }}
                     exit={{ scale: 0.9, y: 50 }}
@@ -72,10 +33,10 @@ const Modal = ({ children, title, onClose }) => {
                     onClick={e => e.stopPropagation()}
                 >
                     <div className="flex justify-between items-center mb-6">
-                        <h2 id="modal-title" className="text-2xl font-bold text-gray-800 dark:text-white">{title}</h2>
+                        <h2 id="modal-title" className="text-2xl font-bold text-gray-800">{title}</h2>
                         <motion.button
                             onClick={onClose}
-                            className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+                            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
                             aria-label="Close modal"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
@@ -101,7 +62,7 @@ const FormField = ({ label, name, value, onChange, type = 'text', options = [], 
 
     return (
         <div className="mb-4">
-            <label htmlFor={name} className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label htmlFor={name} className="block text-sm font-medium mb-2 text-gray-700">
                 {label} {required && <span className="text-red-500">*</span>}
             </label>
             {type === 'select' ? (
@@ -110,7 +71,7 @@ const FormField = ({ label, name, value, onChange, type = 'text', options = [], 
                     name={name}
                     value={value}
                     onChange={onChange}
-                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition duration-150 ease-in-out"
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out"
                     required={required}
                     ref={inputRef}
                 >
@@ -125,7 +86,7 @@ const FormField = ({ label, name, value, onChange, type = 'text', options = [], 
                     type={type}
                     value={value}
                     onChange={onChange}
-                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition duration-150 ease-in-out"
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out"
                     required={required}
                     ref={inputRef}
                 />
@@ -219,7 +180,95 @@ const RoomForm = ({ item, onSubmit, onCancel }) => {
                 <motion.button
                     type="button"
                     onClick={onCancel}
-                    className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition duration-150 ease-in-out dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                    className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition duration-150 ease-in-out"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                >
+                    Cancel
+                </motion.button>
+            </div>
+        </form>
+    );
+};
+
+const ReservationForm = ({ item, rooms, onSubmit, onCancel }) => {
+    const [formData, setFormData] = useState({
+        roomId: item?.roomId || (rooms.length > 0 ? rooms[0].id : ''),
+        customerName: item?.customerName || '',
+        checkInDate: item?.checkInDate ? new Date(item.checkInDate).toISOString().split('T')[0] : '',
+        checkOutDate: item?.checkOutDate ? new Date(item.checkOutDate).toISOString().split('T')[0] : '',
+        status: item?.status || 'Confirmed',
+    });
+
+    useEffect(() => {
+        if (item) {
+            setFormData({
+                roomId: item.roomId || '',
+                customerName: item.customerName || '',
+                checkInDate: item.checkInDate ? new Date(item.checkInDate).toISOString().split('T')[0] : '',
+                checkOutDate: item.checkOutDate ? new Date(item.checkOutDate).toISOString().split('T')[0] : '',
+                status: item.status || 'Confirmed',
+            });
+        }
+    }, [item]);
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        // Basic validation
+        if (!formData.roomId || !formData.customerName || !formData.checkInDate || !formData.checkOutDate) {
+            alert('Please fill all required fields.');
+            return;
+        }
+        onSubmit(formData, 'reservation');
+    };
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <FormField
+                label="Room Number"
+                name="roomId"
+                type="select"
+                value={formData.roomId}
+                onChange={handleInputChange}
+                options={rooms.map(room => ({ value: room.id, label: room.number }))}
+                required
+            />
+            <FormField label="Customer Name" name="customerName" value={formData.customerName} onChange={handleInputChange} required />
+            <FormField label="Check-in Date" name="checkInDate" type="date" value={formData.checkInDate} onChange={handleInputChange} required />
+            <FormField label="Check-out Date" name="checkOutDate" type="date" value={formData.checkOutDate} onChange={handleInputChange} required />
+            <FormField
+                label="Status"
+                name="status"
+                type="select"
+                value={formData.status}
+                onChange={handleInputChange}
+                options={[
+                    { value: 'Confirmed', label: 'Confirmed' },
+                    { value: 'Pending', label: 'Pending' },
+                    { value: 'Cancelled', label: 'Cancelled' },
+                    { value: 'Checked-in', label: 'Checked-in' },
+                    { value: 'Checked-out', label: 'Checked-out' },
+                ]}
+                required
+            />
+            <div className="flex gap-2 mt-6">
+                <motion.button
+                    type="submit"
+                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-md"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                >
+                    {item ? 'Update Reservation' : 'Add Reservation'}
+                </motion.button>
+                <motion.button
+                    type="button"
+                    onClick={onCancel}
+                    className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition duration-150 ease-in-out"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                 >
@@ -271,7 +320,7 @@ const CustomerForm = ({ item, onSubmit, onCancel }) => {
                 <motion.button
                     type="button"
                     onClick={onCancel}
-                    className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition duration-150 ease-in-out dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                    className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition duration-150 ease-in-out"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                 >
@@ -335,7 +384,7 @@ const ServiceForm = ({ item, onSubmit, onCancel }) => {
                 <motion.button
                     type="button"
                     onClick={onCancel}
-                    className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition duration-150 ease-in-out dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                    className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition duration-150 ease-in-out"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                 >
@@ -401,7 +450,7 @@ const CustomerServiceForm = ({ customers, services, onSubmit, onCancel }) => {
                 <motion.button
                     type="button"
                     onClick={onCancel}
-                    className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition duration-150 ease-in-out dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                    className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition duration-150 ease-in-out"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                 >
@@ -413,7 +462,6 @@ const CustomerServiceForm = ({ customers, services, onSubmit, onCancel }) => {
 };
 
 const AdminDashboard = () => {
-    const { isDarkMode, toggleDarkMode } = useContext(AdminContext);
     const dispatch = useDispatch();
 
     // Selectors for Room Management
@@ -422,8 +470,8 @@ const AdminDashboard = () => {
     // Selectors for Reservation Management
     const { tableData: reservationTableData, loading: reservationLoading, error: reservationError, currentReservation } = useSelector((state) => state.reservationSlice);
 
-    // REMOVED: Selectors for User/Auth (teachers)
-    // REMOVED: const { teachers, loading: authLoading, error: authError } = useSelector((state) => state.userSlice);
+    // Selectors for User/Auth (teachers)
+    const { teachers, loading: authLoading, error: authError, user: currentUser } = useSelector((state) => state.userSlice);
 
     // Local state for UI
     const [activeTab, setActiveTab] = useState('rooms');
@@ -434,14 +482,14 @@ const AdminDashboard = () => {
 
     // Fetch data on component mount based on active tab
     useEffect(() => {
+        dispatch(checkAuth()); // Check auth status on component mount
         if (activeTab === 'rooms') {
             dispatch(fetchRooms());
         } else if (activeTab === 'reservations') {
             dispatch(getReservationTable());
+        } else if (activeTab === 'teachers') {
+            dispatch(getAllTeachers());
         }
-        // REMOVED: else if (activeTab === 'teachers') {
-        // REMOVED:    dispatch(getAllTeachers());
-        // REMOVED: }
     }, [activeTab, dispatch]);
 
     const openModal = (type, item = null) => {
@@ -465,7 +513,7 @@ const AdminDashboard = () => {
         dispatch(clearRoomError());
         dispatch(clearCurrentReservation());
         dispatch(resetReservationError());
-        // REMOVED: dispatch(resetAuthError());
+        dispatch(resetAuthError());
     };
 
     const handleSubmit = async (data, type) => {
@@ -513,10 +561,15 @@ const AdminDashboard = () => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'Available': return 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100';
-            case 'Occupied': return 'bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-100';
-            case 'Maintenance': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100';
-            default: return 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-100';
+            case 'Available': return 'bg-green-100 text-green-800';
+            case 'Occupied': return 'bg-red-100 text-red-800';
+            case 'Maintenance': return 'bg-yellow-100 text-yellow-800';
+            case 'Confirmed': return 'bg-blue-100 text-blue-800';
+            case 'Pending': return 'bg-yellow-100 text-yellow-800';
+            case 'Cancelled': return 'bg-red-100 text-red-800';
+            case 'Checked-in': return 'bg-green-100 text-green-800';
+            case 'Checked-out': return 'bg-gray-100 text-gray-800';
+            default: return 'bg-gray-100 text-gray-800';
         }
     };
 
@@ -532,12 +585,22 @@ const AdminDashboard = () => {
 
     const filteredRooms = getFilteredData(rooms, ['number', 'type', 'status']);
     const filteredReservations = getFilteredData(reservationTableData, ['customerName', 'roomNumber', 'status']);
-    // REMOVED: const filteredTeachers = getFilteredData(teachers, ['name', 'email']);
+    const filteredTeachers = getFilteredData(teachers, ['name', 'email']);
+
 
     // Placeholders for Customers and Services as no Redux slices were provided for them
-    const mockCustomers = [];
-    const mockServices = [];
-    const mockCustomerServices = [];
+    const mockCustomers = [
+        { id: 'c1', name: 'Alice Smith', email: 'alice@example.com', phone: '123-456-7890', room: '101' },
+        { id: 'c2', name: 'Bob Johnson', email: 'bob@example.com', phone: '098-765-4321', room: '203' },
+    ];
+    const mockServices = [
+        { id: 's1', name: 'Room Service Dinner', category: 'Food & Beverage', price: 50 },
+        { id: 's2', name: 'Laundry Service', category: 'Housekeeping', price: 25 },
+    ];
+    const mockCustomerServices = [
+        { id: 'cs1', customerName: 'Alice Smith', serviceName: 'Room Service Dinner', quantity: 1 },
+        { id: 'cs2', customerName: 'Bob Johnson', serviceName: 'Laundry Service', quantity: 2 },
+    ];
 
     const filteredCustomers = getFilteredData(mockCustomers, ['name', 'email', 'room']);
     const filteredServices = getFilteredData(mockServices, ['name', 'category']);
@@ -550,31 +613,31 @@ const AdminDashboard = () => {
         services: ['Service Name', 'Category', 'Price', 'Actions'], // Placeholder
         customerServices: ['Customer', 'Service', 'Quantity', 'Actions'], // Placeholder
         reservations: ['Reservation ID', 'Room Number', 'Customer', 'Check-in', 'Check-out', 'Status', 'Actions'],
-        // REMOVED: teachers: ['Teacher Name', 'Email', 'Role', 'Actions'],
+        teachers: ['Teacher Name', 'Email', 'Role', 'Actions'],
     };
 
     const tableRows = {
         rooms: roomsLoading ? (
-            <tr><td colSpan="5" className="text-center py-4 text-gray-500 dark:text-gray-400">Loading rooms...</td></tr>
+            <tr><td colSpan="5" className="text-center py-4 text-gray-500">Loading rooms...</td></tr>
         ) : roomsError ? (
             <tr><td colSpan="5" className="text-center py-4 text-red-500">Error: {roomsError}</td></tr>
         ) : filteredRooms.length === 0 ? (
-            <tr><td colSpan="5" className="text-center py-4 text-gray-500 dark:text-gray-400">No rooms found.</td></tr>
+            <tr><td colSpan="5" className="text-center py-4 text-gray-500">No rooms found.</td></tr>
         ) : (
             filteredRooms.map(room => (
-                <tr key={room.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{room.number}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{room.type}</td>
+                <tr key={room.id} className="hover:bg-gray-50 transition duration-150 ease-in-out">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{room.number}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{room.type}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2.5 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(room.status)}`}>
                             {room.status}
                         </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">${room.price}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${room.price}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <motion.button
                             onClick={() => openModal('room', room)}
-                            className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-150 ease-in-out"
+                            className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 transition duration-150 ease-in-out"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             aria-label={`Edit room ${room.number}`}
@@ -583,7 +646,7 @@ const AdminDashboard = () => {
                         </motion.button>
                         <motion.button
                             onClick={() => handleDelete('room', room.id)}
-                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition duration-150 ease-in-out ml-2"
+                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 transition duration-150 ease-in-out ml-2"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             aria-label={`Delete room ${room.number}`}
@@ -595,19 +658,19 @@ const AdminDashboard = () => {
             ))
         ),
         reservations: reservationLoading ? (
-            <tr><td colSpan="7" className="text-center py-4 text-gray-500 dark:text-gray-400">Loading reservations...</td></tr>
+            <tr><td colSpan="7" className="text-center py-4 text-gray-500">Loading reservations...</td></tr>
         ) : reservationError ? (
             <tr><td colSpan="7" className="text-center py-4 text-red-500">Error: {reservationError}</td></tr>
         ) : filteredReservations.length === 0 ? (
-            <tr><td colSpan="7" className="text-center py-4 text-gray-500 dark:text-gray-400">No reservations found.</td></tr>
+            <tr><td colSpan="7" className="text-center py-4 text-gray-500">No reservations found.</td></tr>
         ) : (
             filteredReservations.map(reservation => (
-                <tr key={reservation.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{reservation.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{reservation.roomNumber}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{reservation.customerName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{new Date(reservation.checkInDate).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{new Date(reservation.checkOutDate).toLocaleDateString()}</td>
+                <tr key={reservation.id} className="hover:bg-gray-50 transition duration-150 ease-in-out">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{reservation.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{reservation.roomNumber}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{reservation.customerName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{new Date(reservation.checkInDate).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{new Date(reservation.checkOutDate).toLocaleDateString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2.5 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(reservation.status)}`}>
                             {reservation.status}
@@ -616,7 +679,7 @@ const AdminDashboard = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <motion.button
                             onClick={() => openModal('reservation', reservation)}
-                            className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-150 ease-in-out"
+                            className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 transition duration-150 ease-in-out"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             aria-label={`Edit reservation ${reservation.id}`}
@@ -625,7 +688,7 @@ const AdminDashboard = () => {
                         </motion.button>
                         <motion.button
                             onClick={() => handleDelete('reservation', reservation.id)}
-                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition duration-150 ease-in-out ml-2"
+                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 transition duration-150 ease-in-out ml-2"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             aria-label={`Delete reservation ${reservation.id}`}
@@ -636,38 +699,38 @@ const AdminDashboard = () => {
                 </tr>
             ))
         ),
-        // REMOVED: teachers: authLoading ? (
-        // REMOVED:    <tr><td colSpan="4" className="text-center py-4 text-gray-500 dark:text-gray-400">Loading teachers...</td></tr>
-        // REMOVED: ) : authError ? (
-        // REMOVED:    <tr><td colSpan="4" className="text-center py-4 text-red-500">Error: {authError}</td></tr>
-        // REMOVED: ) : filteredTeachers.length === 0 ? (
-        // REMOVED:    <tr><td colSpan="4" className="text-center py-4 text-gray-500 dark:text-gray-400">No teachers found.</td></tr>
-        // REMOVED: ) : (
-        // REMOVED:    filteredTeachers.map(teacher => (
-        // REMOVED:        <tr key={teacher.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
-        // REMOVED:            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{teacher.name}</td>
-        // REMOVED:            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{teacher.email}</td>
-        // REMOVED:            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{teacher.role}</td>
-        // REMOVED:            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-        // REMOVED:                {/* No edit/delete actions for teachers in userSlice, so these are omitted */}
-        // REMOVED:                <span className="text-gray-500 dark:text-gray-400">N/A</span>
-        // REMOVED:            </td>
-        // REMOVED:        </tr>
-        // REMOVED:    ))
-        // REMOVED: ),
+        teachers: authLoading ? (
+            <tr><td colSpan="4" className="text-center py-4 text-gray-500">Loading teachers...</td></tr>
+        ) : authError ? (
+            <tr><td colSpan="4" className="text-center py-4 text-red-500">Error: {authError}</td></tr>
+        ) : filteredTeachers.length === 0 ? (
+            <tr><td colSpan="4" className="text-center py-4 text-gray-500">No teachers found.</td></tr>
+        ) : (
+            filteredTeachers.map(teacher => (
+                <tr key={teacher.id} className="hover:bg-gray-50 transition duration-150 ease-in-out">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{teacher.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{teacher.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{teacher.role}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {/* No edit/delete actions for teachers in userSlice, so these are omitted */}
+                        <span className="text-gray-500">N/A</span>
+                    </td>
+                </tr>
+            ))
+        ),
         customers: filteredCustomers.length === 0 ? (
-            <tr><td colSpan="5" className="text-center py-4 text-gray-500 dark:text-gray-400">No customer data available via API.</td></tr>
+            <tr><td colSpan="5" className="text-center py-4 text-gray-500">No customer data available via API.</td></tr>
         ) : (
             filteredCustomers.map(customer => (
-                <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{customer.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{customer.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{customer.phone}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{customer.room}</td>
+                <tr key={customer.id} className="hover:bg-gray-50 transition duration-150 ease-in-out">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{customer.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{customer.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{customer.phone}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{customer.room}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <motion.button
                             onClick={() => openModal('customer', customer)}
-                            className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-150 ease-in-out"
+                            className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 transition duration-150 ease-in-out"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             aria-label={`Edit customer ${customer.name}`}
@@ -676,7 +739,7 @@ const AdminDashboard = () => {
                         </motion.button>
                         <motion.button
                             onClick={() => handleDelete('customer', customer.id)}
-                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition duration-150 ease-in-out ml-2"
+                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 transition duration-150 ease-in-out ml-2"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             aria-label={`Delete customer ${customer.name}`}
@@ -688,17 +751,17 @@ const AdminDashboard = () => {
             ))
         ),
         services: filteredServices.length === 0 ? (
-            <tr><td colSpan="4" className="text-center py-4 text-gray-500 dark:text-gray-400">No service data available via API.</td></tr>
+            <tr><td colSpan="4" className="text-center py-4 text-gray-500">No service data available via API.</td></tr>
         ) : (
             filteredServices.map(service => (
-                <tr key={service.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{service.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{service.category}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">${service.price}</td>
+                <tr key={service.id} className="hover:bg-gray-50 transition duration-150 ease-in-out">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{service.category}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${service.price}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <motion.button
                             onClick={() => openModal('service', service)}
-                            className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900 transition duration-150 ease-in-out"
+                            className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 transition duration-150 ease-in-out"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             aria-label={`Edit service ${service.name}`}
@@ -707,7 +770,7 @@ const AdminDashboard = () => {
                         </motion.button>
                         <motion.button
                             onClick={() => handleDelete('service', service.id)}
-                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition duration-150 ease-in-out ml-2"
+                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 transition duration-150 ease-in-out ml-2"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             aria-label={`Delete service ${service.name}`}
@@ -719,17 +782,17 @@ const AdminDashboard = () => {
             ))
         ),
         customerServices: filteredCustomerServices.length === 0 ? (
-            <tr><td colSpan="4" className="text-center py-4 text-gray-500 dark:text-gray-400">No customer service data available via API.</td></tr>
+            <tr><td colSpan="4" className="text-center py-4 text-gray-500">No customer service data available via API.</td></tr>
         ) : (
             filteredCustomerServices.map(cs => (
-                <tr key={cs.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{cs.customerName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{cs.serviceName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{cs.quantity}</td>
+                <tr key={cs.id} className="hover:bg-gray-50 transition duration-150 ease-in-out">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{cs.customerName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{cs.serviceName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{cs.quantity}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <motion.button
                             onClick={() => handleDelete('customerService', cs.id)}
-                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition duration-150 ease-in-out ml-2"
+                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 transition duration-150 ease-in-out ml-2"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             aria-label={`Delete customer service assignment for ${cs.customerName}`}
@@ -748,19 +811,19 @@ const AdminDashboard = () => {
         const currentRows = tableRows[activeTab];
 
         return (
-            <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 mt-6 transition-colors duration-200">
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white capitalize">{activeTab} Management</h3>
-                    <div className="flex space-x-3">
-                        <div className="relative">
+            <div className="bg-white shadow-lg rounded-xl p-4 md:p-6 mt-6 transition-colors duration-200">
+                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 md:gap-0">
+                    <h3 className="text-xl font-semibold text-gray-900 capitalize">{activeTab} Management</h3>
+                    <div className="flex flex-wrap justify-center gap-3">
+                        <div className="relative w-full md:w-auto">
                             <input
                                 type="text"
                                 placeholder={`Search ${activeTab}...`}
-                                className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition duration-150 ease-in-out"
+                                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out w-full"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
-                            <Search className="w-5 h-5 text-gray-400 dark:text-gray-300 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                         </div>
                         {activeTab === 'rooms' && (
                             <motion.button
@@ -821,21 +884,21 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead className="bg-gray-50 dark:bg-gray-700">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
                         <tr>
                             {currentHeaders.map((header, index) => (
                                 <th
                                     key={index}
                                     scope="col"
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                                 >
                                     {header}
                                 </th>
                             ))}
                         </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                        <tbody className="bg-white divide-y divide-gray-200">
                         {currentRows}
                         </tbody>
                     </table>
@@ -845,30 +908,22 @@ const AdminDashboard = () => {
     };
 
     return (
-        <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} transition-colors duration-200 p-6 font-sans`}>
-            <header className="flex justify-between items-center py-4 px-6 bg-white dark:bg-gray-800 shadow-md rounded-xl">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Panel</h1>
+        <div className={`min-h-screen bg-gray-100 text-gray-900 transition-colors duration-200 p-4 md:p-6 font-sans`}>
+            <header className="flex flex-col sm:flex-row justify-between items-center py-4 px-6 bg-white shadow-md rounded-xl">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2 sm:mb-0">Admin Panel</h1>
                 <div className="flex items-center space-x-4">
-                    <motion.button
-                        onClick={toggleDarkMode}
-                        className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                    >
-                        {isDarkMode ? <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-moon"><path d="M12 3a6 6 0 0 0 9 9 9 0 1 1-9-9Z"/></svg>}
-                    </motion.button>
-                    <span className="font-medium">Welcome, Admin!</span>
+                    <span className="font-medium">Welcome, {currentUser?.name || 'Admin'}!</span>
                 </div>
             </header>
 
             <main className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
-                <nav className="md:col-span-1 bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 transition-colors duration-200 h-fit">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Navigation</h2>
+                <nav className="md:col-span-1 bg-white shadow-lg rounded-xl p-6 transition-colors duration-200 h-fit">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Navigation</h2>
                     <ul>
                         <li>
                             <motion.button
                                 onClick={() => setActiveTab('rooms')}
-                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'rooms' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'rooms' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
                                 whileHover={{ x: 5 }}
                             >
                                 <BedDouble className="w-5 h-5 mr-3" /> Room Management
@@ -877,7 +932,7 @@ const AdminDashboard = () => {
                         <li className="mt-2">
                             <motion.button
                                 onClick={() => setActiveTab('reservations')}
-                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'reservations' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'reservations' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
                                 whileHover={{ x: 5 }}
                             >
                                 <ConciergeBell className="w-5 h-5 mr-3" /> Reservation Management
@@ -886,7 +941,7 @@ const AdminDashboard = () => {
                         <li className="mt-2">
                             <motion.button
                                 onClick={() => setActiveTab('customers')}
-                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'customers' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'customers' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
                                 whileHover={{ x: 5 }}
                             >
                                 <Users className="w-5 h-5 mr-3" /> Customer Management
@@ -895,7 +950,7 @@ const AdminDashboard = () => {
                         <li className="mt-2">
                             <motion.button
                                 onClick={() => setActiveTab('services')}
-                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'services' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'services' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
                                 whileHover={{ x: 5 }}
                             >
                                 <Settings className="w-5 h-5 mr-3" /> Service Management
@@ -904,24 +959,21 @@ const AdminDashboard = () => {
                         <li className="mt-2">
                             <motion.button
                                 onClick={() => setActiveTab('customerServices')}
-                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'customerServices' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'customerServices' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
                                 whileHover={{ x: 5 }}
                             >
                                 <Filter className="w-5 h-5 mr-3" /> Customer Services
                             </motion.button>
                         </li>
-                        {/* REMOVED: Teachers List navigation item */}
-                        {/*
                         <li className="mt-2">
                             <motion.button
                                 onClick={() => setActiveTab('teachers')}
-                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'teachers' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+                                className={`w-full flex items-center p-3 rounded-lg text-left transition-colors duration-200 ${activeTab === 'teachers' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
                                 whileHover={{ x: 5 }}
                             >
                                 <Users className="w-5 h-5 mr-3" /> Teachers List
                             </motion.button>
                         </li>
-                        */}
                     </ul>
                 </nav>
 
@@ -947,10 +999,9 @@ const AdminDashboard = () => {
                             />
                         )}
                         {modalType === 'reservation' && (
-                            // You would create a ReservationForm component similarly to RoomForm
-                            // Using RoomForm as a placeholder, replace with a proper ReservationForm
-                            <RoomForm
+                            <ReservationForm // Using the new ReservationForm
                                 item={currentReservation}
+                                rooms={rooms} // Pass rooms for selection
                                 onSubmit={(data) => handleSubmit(data, modalType)}
                                 onCancel={closeModal}
                             />
@@ -984,12 +1035,10 @@ const AdminDashboard = () => {
     );
 };
 
-// Main App component to wrap with context provider
+// Main App component (no AdminProvider needed if dark mode is removed and no other context is provided)
 const App = () => {
     return (
-        <AdminProvider>
-            <AdminDashboard />
-        </AdminProvider>
+        <AdminDashboard />
     );
 };
 
