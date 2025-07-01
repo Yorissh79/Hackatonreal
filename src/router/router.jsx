@@ -1,4 +1,3 @@
-// router.jsx
 import { createBrowserRouter } from "react-router-dom";
 import Layout from "../components/layout/Layout.jsx";
 import Home from "../pages/home/Home.jsx";
@@ -13,61 +12,45 @@ import ProtectedRoute from "../components/protectedroute/ProtectedRoute.jsx";
 import NotFound from "../pages/NotFound/NotFound.jsx";
 import { UserProvider } from "../context/UserContext.jsx";
 
-// Root component that wraps everything with UserProvider
 const RootWrapper = ({ children }) => (
-    <UserProvider>
-      {children}
-    </UserProvider>
+    <UserProvider>{children}</UserProvider>
 );
 
 export const router = createBrowserRouter([
   {
     path: "/",
     element: <RootWrapper><Layout /></RootWrapper>,
-    children: [
-      {
-        path: "/",
-        Component: Home,
-      }
-    ],
+    children: [{ path: "/", Component: Home }],
   },
   {
     path: "/admin",
     element: (
-        <RootWrapper>
-          <ProtectedRoute allowedRoles={['admin']} />
-        </RootWrapper>
+      <RootWrapper>
+        <AdminLayout />
+      </RootWrapper>
     ),
     children: [
       {
-        path: "/admin",
-        Component: AdminLayout,
-        children: [
-          {
-            index: true, // This makes it the default route for /admin
-            Component: Admin,
-          },
-        ],
+        index: true,
+        element: (
+            <Admin />
+        ),
       },
     ],
   },
   {
     path: "/user",
     element: (
-        <RootWrapper>
-          <ProtectedRoute allowedRoles={['user']} />
-        </RootWrapper>
+      <RootWrapper>
+        <UserLayout />
+      </RootWrapper>
     ),
     children: [
       {
-        path: "/user",
-        Component: UserLayout,
-        children: [
-          {
-            index: true, // This makes it the default route for /user
-            Component: User,
-          },
-        ],
+        index: true,
+        element: (
+            <User />
+        ),
       },
     ],
   },
@@ -75,19 +58,13 @@ export const router = createBrowserRouter([
     path: "/register",
     element: <RootWrapper><RegistorLayout /></RootWrapper>,
     children: [
-      {
-        path: "signup", // relative path, so it becomes /register/signup
-        Component: RegisterForm,
-      },
-      {
-        path: "login", // relative path, so it becomes /register/login
-        element: <RootWrapper><LoginForm /></RootWrapper>,
-      },
+      { path: "signup", Component: RegisterForm },
+      { path: "login", element: <LoginForm /> },
     ],
   },
   {
     path: "/login",
-    element: <RootWrapper><LoginForm /></RootWrapper>
+    element: <RootWrapper><LoginForm /></RootWrapper>,
   },
   {
     path: "*",
