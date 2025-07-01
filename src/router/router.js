@@ -5,6 +5,7 @@ import RegisterForm from "../pages/register/Register.jsx";
 import LoginForm from "../pages/login/Login.jsx";
 import Admin from "../pages/admin/Admin.jsx";
 import adminLayout from "../components/adminlayout/AdminLayout.jsx";
+import User from "../pages/user/User.jsx";
 
 export const router = createBrowserRouter([
   {
@@ -22,6 +23,10 @@ export const router = createBrowserRouter([
       {
         path: "/login",
         Component: LoginForm,
+      },
+      {
+        path: "/user",
+        Component: User,
       },
     ],
   },
