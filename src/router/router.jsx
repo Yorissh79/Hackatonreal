@@ -12,6 +12,7 @@ import ProtectedRoute from "../components/protectedroute/ProtectedRoute.jsx";
 import NotFound from "../pages/NotFound/NotFound.jsx";
 import { UserProvider } from "../context/UserContext.jsx";
 import DetailPage from "../pages/Detail/DetailPage.jsx";
+import Contact from "../pages/Contact/Contact.jsx";
 
 export const router = createBrowserRouter([
   {
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
     element: <Layout />,
     children: [
       { path: "/", element: <Home /> },
+
     ],
   },
   {
@@ -31,6 +33,7 @@ export const router = createBrowserRouter([
       },
     ],
   },
+  { path: "/contact", element: <Contact /> },
   {
     path: "/detail/:id",
     element: <DetailPage />,
