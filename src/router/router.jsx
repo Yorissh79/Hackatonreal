@@ -12,6 +12,7 @@ import RegistorLayout from "../components/registerlayout/RegistorLayout.jsx";
 import ProtectedRoute from "../components/protectedroute/ProtectedRoute.jsx";
 import NotFound from "../pages/NotFound/NotFound.jsx";
 import { UserProvider } from "../context/UserContext.jsx";
+import ContactUs from "../pages/contactus/ContactUs.jsx";
 
 // Root component that wraps everything with UserProvider
 const RootWrapper = ({ children }) => (
@@ -28,6 +29,10 @@ export const router = createBrowserRouter([
       {
         path: "/",
         Component: Home,
+      },
+      {
+        path: "/contact",
+        Component: ContactUs
       }
     ],
   },

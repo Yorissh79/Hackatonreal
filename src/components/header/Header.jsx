@@ -6,6 +6,7 @@ import MenuButton from '@mui/joy/MenuButton';
 import MenuItem from '@mui/joy/MenuItem'; 
 import PersonIcon from '@mui/icons-material/Person'; 
 import useDarkMode from '../../hooks/useDarkmode.js'; // Assuming useDarkMode.js is in the same directory 
+import { Link } from 'react-router';
  
 const Header = () => { 
   const [isScrolled, setIsScrolled] = useState(false); 
@@ -62,7 +63,7 @@ const Header = () => {
  
           <FaPhone className="text-sm cursor-pointer" /> 
           <FaEnvelope className="text-sm cursor-pointer" /> 
-          <span className="font-semibold tracking-wide cursor-pointer">NEWSLETTER</span> 
+          <Link to={"/"} className="font-semibold tracking-wide cursor-pointer">NEWSLETTER</Link> 
  
           <button onClick={toggleDarkMode} className="ml-auto"> 
             {isDarkMode ? <FaSun fontSize={30} color="white" /> : <FaMoon fontSize={30}  color={iconColor} />} 
