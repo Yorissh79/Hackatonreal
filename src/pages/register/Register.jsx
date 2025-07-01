@@ -1,14 +1,9 @@
-// Register.jsx
 import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { signup } from "../../redux/reducers/userSlice";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 const RegisterForm = () => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate(); // Initialize useNavigate
-  // Access the entire error object from the userSlice state
-  const { loading, error } = useSelector((state) => state.userSlice);
+  // Mock Redux functions for demo
+  const loading = false;
+  const error = null;
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -19,6 +14,8 @@ const RegisterForm = () => {
   });
 
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
@@ -29,7 +26,7 @@ const RegisterForm = () => {
 
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Invalid email";
     }
 
@@ -70,7 +67,6 @@ const RegisterForm = () => {
         [name]: "",
       }));
     }
-    // Also clear general API error if the user starts typing after an API error
     if (errors.api) {
       setErrors((prev) => ({
         ...prev,
@@ -105,232 +101,211 @@ const RegisterForm = () => {
       navigate('/register/login');
     } else if (signup.rejected.match(resultAction)) {
       // Handle API errors
-      const apiError = resultAction.payload; // Access the payload of the rejected action
-      if (apiError && apiError.errors && apiError.errors.Error && apiError.errors.Error.length > 0) { //
-        // Assuming the first error message is the most relevant for general display
-        const generalErrorMessage = apiError.errors.Error[0]; //
+      const apiError = resultAction.payload;
+      if (apiError && apiError.errors && apiError.errors.Error && apiError.errors.Error.length > 0) {
+        const generalErrorMessage = apiError.errors.Error[0];
 
-        // Map specific API errors to form fields
         if (generalErrorMessage.includes("phone number")) {
           setErrors((prevErrors) => ({
             ...prevErrors,
-            phoneNumber: generalErrorMessage, // Display next to phone number field
+            phoneNumber: generalErrorMessage,
           }));
         } else {
-          // For other API errors, display them generally
           setErrors((prevErrors) => ({
             ...prevErrors,
-            api: generalErrorMessage, // Display as a general API error
+            api: generalErrorMessage,
           }));
         }
       } else {
-        // Fallback for unexpected error structures or network errors
         setErrors((prevErrors) => ({
           ...prevErrors,
-          api: error?.message || 'Registration failed due to an unknown error.', // Use the Redux 'error' if available, or a generic message
+          api: error?.message || 'Registration failed due to an unknown error.',
         }));
       }
     }
   };
 
   return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Join Us</h1>
-            <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-600 mx-auto rounded-full mb-4"></div>
-            <p className="text-gray-400">Create your account to get started</p>
-          </div>
+    <div
+      className="min-h-screen flex items-center justify-center bg-cover bg-center py-12"
+      style={{
+        backgroundImage:
+          "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e')",
+      }}
+    >
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white/30 backdrop-blur-md shadow-lg rounded-xl px-10 py-8 max-w-md w-full mx-4 border border-white/40"
+        noValidate
+      >
+        <h2 className="text-3xl font-bold text-white text-center mb-2 drop-shadow-md">
+          Join Paradise 🏝️
+        </h2>
+        <p className="text-white/80 text-center mb-6 text-sm drop-shadow-sm">
+          Create your account for the ultimate beach experience
+        </p>
 
-          {/* Form Card */}
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-600 p-8 shadow-2xl backdrop-blur-sm">
-            <div className="space-y-6">
-              {/* Full Name */}
-              <div>
-                <label
-                    htmlFor="fullName"
-                    className="block text-sm font-medium text-gray-300 mb-2"
-                >
-                  Full Name
-                </label>
-                <div className="relative">
-                  <input
-                      type="text"
-                      id="fullName"
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                      placeholder="Enter your full name"
-                  />
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 to-purple-600/0 opacity-0 transition-opacity duration-300 pointer-events-none focus-within:opacity-20"></div>
-                </div>
-                {errors.fullName && (
-                    <p className="text-red-400 text-xs mt-2 flex items-center">
-                      <span className="mr-1">⚠️</span>
-                      {errors.fullName}
-                    </p>
-                )}
-              </div>
+        {/* Full Name */}
+        <label htmlFor="fullName" className="block text-white font-medium mb-1">
+          Full Name
+        </label>
+        <input
+          type="text"
+          name="fullName"
+          id="fullName"
+          placeholder="Your full name"
+          value={formData.fullName}
+          onChange={handleChange}
+          className={`w-full px-4 py-2 mb-2 rounded-md focus:outline-none bg-white/60 text-gray-900 placeholder-gray-500 ${
+            errors.fullName ? "border border-red-500" : "border border-transparent"
+          }`}
+          autoComplete="name"
+        />
+        {errors.fullName && (
+          <p className="text-sm text-red-200 mb-2">{errors.fullName}</p>
+        )}
 
-              {/* Email */}
-              <div>
-                <label
-                    htmlFor="email"
-                    className="block text-sm font-medium text-gray-300 mb-2"
-                >
-                  Email Address
-                </label>
-                <div className="relative">
-                  <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                      placeholder="Enter your email"
-                  />
-                </div>
-                {errors.email && (
-                    <p className="text-red-400 text-xs mt-2 flex items-center">
-                      <span className="mr-1">⚠️</span>
-                      {errors.email}
-                    </p>
-                )}
-              </div>
+        {/* Email */}
+        <label htmlFor="email" className="block text-white font-medium mb-1">
+          Email
+        </label>
+        <input
+          type="email"
+          name="email"
+          id="email"
+          placeholder="you@example.com"
+          value={formData.email}
+          onChange={handleChange}
+          className={`w-full px-4 py-2 mb-2 rounded-md focus:outline-none bg-white/60 text-gray-900 placeholder-gray-500 ${
+            errors.email ? "border border-red-500" : "border border-transparent"
+          }`}
+          autoComplete="email"
+        />
+        {errors.email && (
+          <p className="text-sm text-red-200 mb-2">{errors.email}</p>
+        )}
 
-              {/* Phone Number */}
-              <div>
-                <label
-                    htmlFor="phoneNumber"
-                    className="block text-sm font-medium text-gray-300 mb-2"
-                >
-                  Phone Number
-                </label>
-                <div className="relative">
-                  <input
-                      type="tel"
-                      id="phoneNumber"
-                      name="phoneNumber"
-                      value={formData.phoneNumber}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                      placeholder="Enter your phone number"
-                  />
-                </div>
-                {errors.phoneNumber && (
-                    <p className="text-red-400 text-xs mt-2 flex items-center">
-                      <span className="mr-1">⚠️</span>
-                      {errors.phoneNumber}
-                    </p>
-                )}
-              </div>
+        {/* Phone Number */}
+        <label htmlFor="phoneNumber" className="block text-white font-medium mb-1">
+          Phone Number
+        </label>
+        <input
+          type="tel"
+          name="phoneNumber"
+          id="phoneNumber"
+          placeholder="Your phone number"
+          value={formData.phoneNumber}
+          onChange={handleChange}
+          className={`w-full px-4 py-2 mb-2 rounded-md focus:outline-none bg-white/60 text-gray-900 placeholder-gray-500 ${
+            errors.phoneNumber ? "border border-red-500" : "border border-transparent"
+          }`}
+          autoComplete="tel"
+        />
+        {errors.phoneNumber && (
+          <p className="text-sm text-red-200 mb-2">{errors.phoneNumber}</p>
+        )}
 
-              {/* Password */}
-              <div>
-                <label
-                    htmlFor="password"
-                    className="block text-sm font-medium text-gray-300 mb-2"
-                >
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                      type="password"
-                      id="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                      placeholder="Create a password"
-                  />
-                </div>
-                {errors.password && (
-                    <p className="text-red-400 text-xs mt-2 flex items-center">
-                      <span className="mr-1">⚠️</span>
-                      {errors.password}
-                    </p>
-                )}
-              </div>
-
-              {/* Confirm Password */}
-              <div>
-                <label
-                    htmlFor="confirmPassword"
-                    className="block text-sm font-medium text-gray-300 mb-2"
-                >
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <input
-                      type="password"
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                      placeholder="Confirm your password"
-                  />
-                </div>
-                {errors.confirmPassword && (
-                    <p className="text-red-400 text-xs mt-2 flex items-center">
-                      <span className="mr-1">⚠️</span>
-                      {errors.confirmPassword}
-                    </p>
-                )}
-              </div>
-
-              {/* Submit Button */}
-              <button
-                  type="submit"
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-              >
-                {loading ? (
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Creating Account...
-                    </div>
-                ) : (
-                    "Create Account"
-                )}
-              </button>
-
-              {/* Display general API error */}
-              {errors.api && (
-                  <p className="text-red-400 text-sm text-center mt-4 flex items-center justify-center">
-                    <span className="mr-1">❗</span>
-                    {errors.api}
-                  </p>
-              )}
-
-              {/* Login Link */}
-              <div className="text-center pt-4 border-t border-gray-700">
-                <p className="text-gray-400 text-sm">
-                  Already have an account?{" "}
-                  <a
-                      href="/register/login"
-                      className="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-300 hover:underline"
-                  >
-                    Sign in here
-                  </a>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="text-center mt-8 text-gray-500 text-xs">
-            <p>
-              By creating an account, you agree to our Terms of Service and
-              Privacy Policy
-            </p>
-          </div>
+        {/* Password */}
+        <label htmlFor="password" className="block text-white font-medium mb-1">
+          Password
+        </label>
+        <div className="relative mb-2">
+          <input
+            type={showPassword ? "text" : "password"}
+            name="password"
+            id="password"
+            placeholder="Create a password"
+            value={formData.password}
+            onChange={handleChange}
+            className={`w-full px-4 py-2 rounded-md bg-white/60 text-gray-900 placeholder-gray-500 ${
+              errors.password
+                ? "border border-red-500"
+                : "border border-transparent"
+            }`}
+            autoComplete="new-password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute right-3 top-2 text-white"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? "🙈" : "👁️"}
+          </button>
         </div>
-      </div>
+        {errors.password && (
+          <p className="text-sm text-red-200 mb-2">{errors.password}</p>
+        )}
+
+        {/* Confirm Password */}
+        <label htmlFor="confirmPassword" className="block text-white font-medium mb-1">
+          Confirm Password
+        </label>
+        <div className="relative mb-2">
+          <input
+            type={showConfirmPassword ? "text" : "password"}
+            name="confirmPassword"
+            id="confirmPassword"
+            placeholder="Confirm your password"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            className={`w-full px-4 py-2 rounded-md bg-white/60 text-gray-900 placeholder-gray-500 ${
+              errors.confirmPassword
+                ? "border border-red-500"
+                : "border border-transparent"
+            }`}
+            autoComplete="new-password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword((prev) => !prev)}
+            className="absolute right-3 top-2 text-white"
+            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+          >
+            {showConfirmPassword ? "🙈" : "👁️"}
+          </button>
+        </div>
+        {errors.confirmPassword && (
+          <p className="text-sm text-red-200 mb-4">{errors.confirmPassword}</p>
+        )}
+
+        {/* API Error */}
+        {errors.api && (
+          <p className="text-center text-red-100 font-medium mb-4">{errors.api}</p>
+        )}
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:bg-yellow-300 text-gray-900 py-2 rounded-md font-semibold transition-colors mb-4"
+        >
+          {loading ? (
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900 mr-2"></div>
+              Creating Account...
+            </div>
+          ) : (
+            "Create Account"
+          )}
+        </button>
+
+        {/* Login Link */}
+        <div className="text-center text-white/90 text-sm mb-4">
+          Already have an account?{" "}
+          <a
+            href="/register/login"
+            className="text-yellow-300 hover:text-yellow-200 font-medium underline transition-colors"
+          >
+            Sign in here
+          </a>
+        </div>
+
+        <p className="text-center text-white/70 text-xs drop-shadow-sm">
+          🌊 Ready to dive into paradise? 🏖️
+        </p>
+      </form>
+    </div>
   );
 };
 
