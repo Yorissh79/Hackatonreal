@@ -13,6 +13,9 @@ module.exports = {
           700: '#4338ca',
         },
       },
+       fontFamily: {
+      serif: ['"Playfair Display"', 'serif'],
+    },
     },
   },
   plugins: [],

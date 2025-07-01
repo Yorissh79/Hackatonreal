@@ -1,25 +1,36 @@
-import React from 'react'
-import "./Header.css"
-const Header = () => {
-    return (
-        <div className="navbar-area">
-            <div className="navbar-component">
-                <div className="loogo">
-                    <h1>RoomEase</h1>
-                </div>
-                <hr className='hr'/>
-                <div className="navlist">
-                    <ul className='navlist-items'>
-                        <li className='navlist-item'>DESTINATION</li>
-                        <li className='navlist-item'>EXPIARENCES</li>
-                        <li className='navlist-item'>VILLAS</li>
-                        <li className='navlist-item'>PRIVATE HOMES</li>
-                        <li className='navlist-item'>STORIES</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    )
-}
+import React from 'react';
+import { FaPhone, FaEnvelope } from 'react-icons/fa';
 
-export default Header
+const Header = () => {
+  return (
+    <header className="w-full text-white font-serif transition-all duration-500 hover:text-gray-800 hover:bg-white  top-0 z-50">
+
+      <div className="flex justify-start items-center text-sm px-5 py-2 gap-4">
+        <FaPhone className="text-sm cursor-pointer" />
+        <FaEnvelope className="text-sm cursor-pointer" />
+        <span className="font-semibold tracking-wide cursor-pointer">NEWSLETTER</span>
+      </div>
+
+
+      <div className="text-center my-2">
+        <h1 className="text-2xl italic font-semibold">ROOMEASER</h1>
+      </div>
+
+
+      <hr className="border-white opacity-30" />
+
+
+      <nav className="text-center py-2">
+        <ul className="inline-flex gap-6 text-base tracking-wider">
+          <li className="cursor-pointer hover:text-gray-400">DESTINATIONS</li>
+          <li className="cursor-pointer hover:text-gray-400">EXPERIENCES</li>
+          <li className="cursor-pointer hover:text-gray-400">VILLAS</li>
+          <li className="cursor-pointer hover:text-gray-400">PRIVATE HOMES</li>
+          <li className="cursor-pointer hover:text-gray-400">STORIES</li>
+        </ul>
+      </nav>
+    </header>
+  );
+};
+
+export default Header;
